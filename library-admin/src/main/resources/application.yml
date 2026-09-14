@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: library-admin
+  profiles:
+    active: @env@
+
+server:
+  port: 8080
