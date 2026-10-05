@@ -26,6 +26,21 @@ public enum UserStatus {
     }
 
     /**
+     * 根据 code 反查枚举；找不到返回 null。
+     */
+    public static UserStatus from(Integer code) {
+        if (code == null) {
+            return null;
+        }
+        for (UserStatus v : values()) {
+            if (v.code.equals(code)) {
+                return v;
+            }
+        }
+        return null;
+    }
+
+    /**
      * 判断账号是否可用
      */
     public boolean isEnabled() {

@@ -3,6 +3,7 @@ package com.libraryweb.config;
 import com.libraryweb.filter.JwtAuthenticationFilter;
 import com.libraryweb.handler.AccessDeniedHandlerImpl;
 import com.libraryweb.handler.AuthenticationEntryPointImpl;
+import com.libraryweb.security.RequestAuthorizationManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,6 +49,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthenticationEntryPointImpl authenticationEntryPoint;
     private final AccessDeniedHandlerImpl accessDeniedHandler;
+    private final RequestAuthorizationManager requestAuthorizationManager;
 
     /**
      * 白名单：无需认证即可访问
@@ -85,11 +87,11 @@ public class SecurityConfig {
                 // 禁用 Session（前后端分离，使用无状态 JWT）
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // 路径授权：预检请求放行 + 白名单放行 + 其余请求要求已认证
+                // 路径授权：预检请求放行 + 白名单放行 + 其余请求按权限映射放行/拒绝
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS).permitAll()
                         .requestMatchers(WHITE_LIST).permitAll()
-                        .anyRequest().authenticated())
+                        .anyRequest().access(requestAuthorizationManager))
                 // 添加 JWT 过滤器（必须在用户名密码过滤器之前，否则后续授权读不到身份）
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 // 自定义未认证/无权限处理器
