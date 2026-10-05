@@ -41,6 +41,11 @@ public class User implements Serializable {
     private Integer role;
 
     /**
+     * 账号状态 0禁用,1正常
+     */
+    private Integer status;
+
+    /**
      * 账号创建时间
      */
     private LocalDateTime createTime;

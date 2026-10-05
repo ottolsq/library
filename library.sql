@@ -7,9 +7,11 @@ USE book_library;
 CREATE TABLE `user` (
                         `user_id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '用户主键ID',
                         `username` VARCHAR(50) NOT NULL COMMENT '登录账号',
-                        `password` VARCHAR(100) NOT NULL COMMENT '登录密码',
+                        `password` VARCHAR(100) NOT NULL COMMENT '登录密码（BCrypt 哈希）',
                         `role` TINYINT NOT NULL COMMENT '角色 0管理员,1读者',
+                        `status` TINYINT NOT NULL DEFAULT 1 COMMENT '账号状态 0禁用,1正常',
                         `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '账号创建时间',
+                        `is_deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '逻辑删除 0未删，1已删',
                         PRIMARY KEY (`user_id`),
                         UNIQUE KEY `uniq_username` (`username`) COMMENT '账号唯一索引'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统用户表';

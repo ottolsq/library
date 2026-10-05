@@ -11,6 +11,7 @@
     <modules>
         <module>library-admin</module>
         <module>library-common</module>
+        <module>library-web</module>
     </modules>
 
     <properties>
@@ -24,6 +25,7 @@
         <druid.version>1.2.23</druid.version>
         <lombok.version>1.18.42</lombok.version>
         <hutool.version>5.8.32</hutool.version>
+        <fastjson2.version>2.0.52</fastjson2.version>
     </properties>
 
     <dependencyManagement>
@@ -64,6 +66,32 @@
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
             </dependency>
+
+            <!-- fastjson2 -->
+            <dependency>
+                <groupId>com.alibaba.fastjson2</groupId>
+                <artifactId>fastjson2</artifactId>
+                <version>${fastjson2.version}</version>
+            </dependency>
+
+            <!-- fastjson2 Spring 6 扩展（Jakarta） -->
+            <dependency>
+                <groupId>com.alibaba.fastjson2</groupId>
+                <artifactId>fastjson2-extension-spring6</artifactId>
+                <version>${fastjson2.version}</version>
+            </dependency>
+
+            <!-- Hutool JWT + Core -->
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-jwt</artifactId>
+                <version>${hutool.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-core</artifactId>
+                <version>${hutool.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -71,9 +99,19 @@
         <pluginManagement>
             <plugins>
                 <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                    <configuration>
+                        <mainClass>com.libraryadmin.LibraryAdminApplication</mainClass>
+                    </configuration>
+                </plugin>
+
+                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <configuration>
+                        <parameters>true</parameters>
                         <annotationProcessorPaths>
                             <path>
                                 <groupId>org.projectlombok</groupId>
