@@ -81,6 +81,21 @@ public final class SecurityConstants {
     public static final String PERMISSION_DELIMITER = ":";
 
     /**
+     * 个人级接口前缀：这些接口不走 {@link #PERMISSION_RULES} 权限映射，
+     * 任何已认证用户都可访问（登录、登出、当前用户信息、菜单树）。
+     *
+     * <p>注意 {@code /user/current} 会被 {@code /user/{id}} 的 Ant 模式误命中，
+     * 所以授权管理器在比对权限表之前先排除这些前缀。
+     */
+    public static final String[] PERSONAL_PATHS = {
+            "/user/login",
+            "/user/logout",
+            "/user/current",
+            "/user/register",
+            "/menu/"
+    };
+
+    /**
      * 请求级权限映射：HTTP 方法 + 路径 → 权限标识。
      *
      * <p>所有受保护接口的路径与权限对应关系只在此处维护，便于审计「哪些接口受保护」。
@@ -89,7 +104,7 @@ public final class SecurityConstants {
      * <p>未匹配到任何规则的请求视为无需鉴权，由管理器返回通过。
      */
     public static final Map<RequestMappingKey, String> PERMISSION_RULES = Map.ofEntries(
-            // 用户模块（管理面接口）
+            // 用户模块（管理面接口；/user/current、/user/logout 等个人接口见 PERSONAL_PATHS）
             Map.entry(new RequestMappingKey("GET", "/user/list"), "user:list"),
             Map.entry(new RequestMappingKey("GET", "/user/{id}"), "user:query"),
             Map.entry(new RequestMappingKey("POST", "/user"), "user:add"),
@@ -97,10 +112,6 @@ public final class SecurityConstants {
             Map.entry(new RequestMappingKey("PUT", "/user/{id}/status"), "user:status"),
             Map.entry(new RequestMappingKey("PUT", "/user/{id}/password"), "user:resetPwd"),
             Map.entry(new RequestMappingKey("DELETE", "/user/{id}"), "user:delete"),
-
-            // 个人 / 当前用户
-            Map.entry(new RequestMappingKey("GET", "/user/current"), "user:query"),
-            Map.entry(new RequestMappingKey("POST", "/user/logout"), "user:logout"),
 
             // 读者管理
             Map.entry(new RequestMappingKey("GET", "/reader/**"), "reader:query"),

@@ -2,15 +2,18 @@ package com.libraryadmin.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.libraryadmin.entity.User;
+import com.libraryadmin.mapper.SysMenuMapper;
 import com.libraryadmin.mapper.UserMapper;
 import com.libraryadmin.service.UserService;
 import com.librarycommon.security.AccountInfo;
 import com.librarycommon.security.AccountService;
 import com.librarycommon.security.PermissionService;
 import com.librarycommon.security.RoleService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -21,8 +24,11 @@ import java.util.Set;
  * 避免反向依赖。
  */
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         implements UserService, AccountService, RoleService, PermissionService {
+
+    private final SysMenuMapper sysMenuMapper;
 
     /* ================== UserService ================== */
 
@@ -71,7 +77,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public Set<String> getPermissionCodes(Long userId) {
-        // 当前未引入权限表与关联表，返回空集合（用户详情空集合可在请求链路中安全流转）
-        return new HashSet<>();
+        // 按角色查询绑定的菜单，取 F 按钮节点的权限标识（超管走通配符，不会进到这里）
+        User user = getById(userId);
+        if (user == null || user.getRole() == null) {
+            return new HashSet<>();
+        }
+        List<String> perms = sysMenuMapper.selectPermsByRoleId(user.getRole());
+        return new HashSet<>(perms);
     }
 }

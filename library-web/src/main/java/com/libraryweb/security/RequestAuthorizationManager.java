@@ -73,6 +73,14 @@ public class RequestAuthorizationManager
             return grant("超级管理员放行");
         }
 
+        // 第 3.5 层：个人级接口（当前用户、登出、菜单树）→ 任何已认证用户可访问
+        // 必须在权限表比对之前排除，否则 /user/{id} 的 Ant 模式会误命中 /user/current
+        for (String prefix : SecurityConstants.PERSONAL_PATHS) {
+            if (uri.startsWith(prefix)) {
+                return grant("个人级接口放行: " + uri);
+            }
+        }
+
         // 第 4 层：按方法 + 路径解析所需权限
         String requiredPermission = resolvePermission(method, uri);
         if (requiredPermission == null) {

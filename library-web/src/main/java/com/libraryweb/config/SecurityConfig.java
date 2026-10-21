@@ -5,6 +5,7 @@ import com.libraryweb.handler.AccessDeniedHandlerImpl;
 import com.libraryweb.handler.AuthenticationEntryPointImpl;
 import com.libraryweb.security.RequestAuthorizationManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -22,6 +23,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 /**
  * Spring Security 配置
@@ -120,15 +123,19 @@ public class SecurityConfig {
     /**
      * CORS 配置
      *
-     * <p>允许任意来源、任意头、任意方法（开发期默认配置）；
-     * 生产环境应替换为具体允许的来源列表。
+     * <p>允许来源使用显式列表（开发环境为 Vite 开发服务器地址，通过配置注入），
+     * 不使用通配符——通配符与「允许携带凭证」互斥，浏览器会直接拒绝；
+     * 且「允许任何站点携带凭证访问」本身就是安全隐患。
      */
+    @Value("#{'${security.cors.allowed-origins:http://localhost:5173}'.split(',')}")
+    private List<String> allowedOrigins;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowCredentials(true);
-        // setAllowCredentials(true) 时不允许使用 addAllowedOrigin("*")，必须用 OriginPattern
-        configuration.addAllowedOriginPattern("*");
+        // 显式来源列表，生产环境通过配置覆盖
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.addAllowedHeader("*");
         configuration.addAllowedMethod("*");
         configuration.setMaxAge(3600L);
