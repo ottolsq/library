@@ -1,0 +1,119 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text);
+  background: var(--color-paper);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+/* Element Plus 主题变量对齐设计令牌 */
+:root {
+  --el-color-primary: var(--color-primary);
+  --el-color-primary-light-3: #4a6485;
+  --el-color-primary-light-5: #7c8fa8;
+  --el-color-primary-light-7: #aebccb;
+  --el-color-primary-light-8: #cdd6e0;
+  --el-color-primary-light-9: var(--color-primary-soft);
+  --el-color-primary-dark-2: var(--color-primary-deep);
+  --el-color-success: var(--color-success);
+  --el-color-warning: var(--color-warning);
+  --el-color-danger: var(--color-danger);
+  --el-border-radius-base: var(--radius-control);
+  --el-font-family: var(--font-sans);
+  --el-text-color-primary: var(--color-text);
+  --el-text-color-regular: var(--color-text);
+  --el-border-color-lighter: var(--color-border);
+}
+
+.el-card {
+  --el-card-border-color: var(--color-border);
+  --el-card-border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.el-table {
+  --el-table-border-color: #efeae0;
+  --el-table-header-bg-color: #faf7f1;
+  --el-table-header-text-color: var(--color-text-muted);
+}
+
+/* 列表页通用容器 */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.table-card {
+  overflow: hidden;
+}
+
+.pagination-bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 16px;
+  border-top: 1px solid #f0ebe1;
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.search-meta {
+  margin-right: auto;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* 折叠态菜单弹层（挂载在 body 上，不能用 scoped） */
+.sidebar-popup .el-menu--popup {
+  background: var(--color-primary-deep);
+}
+
+.sidebar-popup .el-menu-item {
+  color: #cfd8e3;
+}
+
+.sidebar-popup .el-menu-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-popup .el-menu-item.is-active {
+  color: #fff;
+  background: rgba(180, 137, 74, 0.16);
+}

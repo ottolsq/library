@@ -85,3 +85,9 @@ logging:
   level:
     com.libraryadmin: debug
     com.baomidou.mybatisplus: debug
+
+# 跨域白名单：显式列出前端来源，不使用通配符（通配符与 allowCredentials 互斥）
+# 开发时前端走 Vite 代理不会触发跨域；此处用于直接跨域调试与生产部署场景
+security:
+  cors:
+    allowed-origins: http://localhost:5173,http://127.0.0.1:5173

@@ -41,6 +41,7 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> impleme
      */
     private static final int STATUS_BORROWED = 0;
     private static final int STATUS_RETURNED = 1;
+    private static final int STATUS_OVERDUE = 2;
 
     private final BookMapper bookMapper;
     private final ReaderMapper readerMapper;
@@ -157,7 +158,10 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> impleme
     @Transactional
     public void returnBook(Long borrowId) {
         Borrow borrow = requireBorrow(borrowId);
-        if (borrow.getBorrowStatus() != null && borrow.getBorrowStatus() != STATUS_BORROWED) {
+        // 借出与逾期都允许归还；只有已归还的记录才拒绝重复归还
+        if (borrow.getBorrowStatus() != null
+                && borrow.getBorrowStatus() != STATUS_BORROWED
+                && borrow.getBorrowStatus() != STATUS_OVERDUE) {
             throw new BizException(ResultCode.PARAM_INVALID, "该记录已归还");
         }
         // 事务内：写归还时间改状态 + 回补库存
@@ -174,9 +178,9 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> impleme
     @Transactional
     public void deleteBorrow(Long borrowId) {
         Borrow borrow = requireBorrow(borrowId);
-        if (borrow.getBorrowStatus() == null || borrow.getBorrowStatus() == STATUS_BORROWED) {
-            // 未归还的记录不允许删除，防止库存与记录失去对应
-            throw new BizException(ResultCode.PARAM_INVALID, "借出中的记录不允许删除");
+        if (borrow.getBorrowStatus() == null || borrow.getBorrowStatus() != STATUS_RETURNED) {
+            // 仅已归还的记录允许删除；借出/逾期记录删除会导致库存与记录失去对应
+            throw new BizException(ResultCode.PARAM_INVALID, "仅已归还的记录允许删除");
         }
         removeById(borrowId);
     }

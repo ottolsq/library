@@ -1,0 +1,40 @@
+/**
+ * 设计令牌
+ * 整站基调：墨蓝（主色）+ 米白（中性色）+ 铜金（强调色），状态色只用于状态标签。
+ */
+:root {
+  /* 品牌色 */
+  --color-primary: #1f3a5f;
+  --color-primary-deep: #16283f;
+  --color-primary-soft: #e8eef6;
+  --color-accent: #b4894a;
+
+  /* 中性色 */
+  --color-paper: #f6f2ea;
+  --color-surface: #ffffff;
+  --color-text: #22262b;
+  --color-text-muted: #6b7280;
+  --color-border: #e4ded2;
+
+  /* 状态色（仅用于标签与危险操作） */
+  --color-success: #3f8f5b;
+  --color-warning: #c58b2a;
+  --color-danger: #c24a4a;
+
+  /* 字体 */
+  --font-sans: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-serif: 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
+
+  /* 尺寸 */
+  --radius-card: 10px;
+  --radius-control: 6px;
+  --topbar-height: 64px;
+  --sidebar-width: 224px;
+  --sidebar-width-collapsed: 64px;
+  --space-page: 24px;
+
+  /* 阴影 */
+  --shadow-card:
+    0 1px 2px rgba(34, 38, 43, 0.04),
+    0 8px 24px -16px rgba(34, 38, 43, 0.18);
+}

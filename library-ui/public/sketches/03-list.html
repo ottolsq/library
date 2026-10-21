@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>草图 03 · 列表管理页</title>
+    <link rel="stylesheet" href="./sketch.css" />
+  </head>
+  <body>
+    <div class="sketch">
+      <header class="topbar">
+        <div class="brand">藏書閣<small>图书管理系统</small></div>
+        <div class="crumb">首页 / 系统管理 / 用户管理</div>
+        <div class="spacer"></div>
+        <div class="userchip"><span class="avatar">管</span><span>admin</span><span>▾</span></div>
+      </header>
+
+      <div class="shell">
+        <aside class="sidebar">
+          <div class="menu-group">
+            <div class="menu-item"><span class="menu-dot"></span>系统管理<span class="caret">▾</span></div>
+            <div class="menu-item child active">用户管理</div>
+          </div>
+          <div class="menu-group">
+            <div class="menu-item"><span class="menu-dot"></span>读者管理<span class="caret">▸</span></div>
+          </div>
+          <div class="menu-group">
+            <div class="menu-item"><span class="menu-dot"></span>图书管理<span class="caret">▸</span></div>
+          </div>
+          <div class="menu-group">
+            <div class="menu-item"><span class="menu-dot"></span>借阅管理<span class="caret">▸</span></div>
+          </div>
+        </aside>
+
+        <main class="content">
+          <div class="page-head">
+            <div>
+              <div class="page-title">用户管理</div>
+              <div class="page-sub">管理系统登录账号、角色与启用状态</div>
+            </div>
+            <button type="button" class="btn primary">＋ 新增用户</button>
+          </div>
+
+          <section class="card search-card">
+            <span class="meta" style="margin-left: 0">共 3 个账号</span>
+            <button type="button" class="btn" style="margin-left: auto">刷新数据</button>
+          </section>
+
+          <section class="card">
+            <table>
+              <thead>
+                <tr>
+                  <th>账号</th>
+                  <th>角色</th>
+                  <th>状态</th>
+                  <th>创建时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>admin</td>
+                  <td>管理员</td>
+                  <td><span class="tag success">正常</span></td>
+                  <td class="mono">2026-10-01 09:00</td>
+                  <td>
+                    <div class="actions">
+                      <button class="btn sm">编辑</button>
+                      <button class="btn sm">重置密码</button>
+                      <button class="btn sm danger">禁用</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>reader01</td>
+                  <td>读者</td>
+                  <td><span class="tag success">正常</span></td>
+                  <td class="mono">2026-10-01 09:00</td>
+                  <td>
+                    <div class="actions">
+                      <button class="btn sm">编辑</button>
+                      <button class="btn sm">重置密码</button>
+                      <button class="btn sm danger">禁用</button>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td>reader02</td>
+                  <td>读者</td>
+                  <td><span class="tag danger">禁用</span></td>
+                  <td class="mono">2026-09-18 14:20</td>
+                  <td>
+                    <div class="actions">
+                      <button class="btn sm">编辑</button>
+                      <button class="btn sm">重置密码</button>
+                      <button class="btn sm">启用</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="pager">
+              <span>共 3 条</span>
+              <div class="pages">
+                <span class="page-num active">1</span>
+                <span>10 条/页</span>
+              </div>
+            </div>
+          </section>
+
+          <div class="note">行尾操作按钮按权限标识显隐（user:add / user:edit / user:status / user:resetPwd / user:delete）；禁用与删除先二次确认。</div>
+        </main>
+      </div>
+      <div class="sketch__tag">草图 03 / 列表管理页 · 统一“筛选卡 + 表格 + 分页”，操作按钮放在行尾</div>
+    </div>
+  </body>
+</html>

@@ -54,7 +54,8 @@ public class UserAdminController {
                         u.getUserId(),
                         u.getUsername(),
                         u.getRole(),
-                        u.getStatus() == null ? null : UserStatus.from(u.getStatus())))
+                        u.getStatus() == null ? null : UserStatus.from(u.getStatus()),
+                        u.getCreateTime()))
                 .toList();
         return Result.ok(Map.of(
                 "total", page.getTotal(),

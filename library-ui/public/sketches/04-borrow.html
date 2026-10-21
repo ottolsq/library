@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>草图 04 · 核心业务页</title>
+    <link rel="stylesheet" href="./sketch.css" />
+  </head>
+  <body>
+    <div class="sketch">
+      <header class="topbar">
+        <div class="brand">藏書閣<small>图书管理系统</small></div>
+        <div class="crumb">首页 / 借阅管理 / 借阅记录</div>
+        <div class="spacer"></div>
+        <div class="userchip"><span class="avatar">管</span><span>admin</span><span>▾</span></div>
+      </header>
+
+      <div class="shell">
+        <aside class="sidebar">
+          <div class="menu-group">
+            <div class="menu-item"><span class="menu-dot"></span>系统管理<span class="caret">▸</span></div>
+          </div>
+          <div class="menu-group">
+            <div class="menu-item"><span class="menu-dot"></span>读者管理<span class="caret">▸</span></div>
+          </div>
+          <div class="menu-group">
+            <div class="menu-item"><span class="menu-dot"></span>图书管理<span class="caret">▸</span></div>
+          </div>
+          <div class="menu-group">
+            <div class="menu-item"><span class="menu-dot"></span>借阅管理<span class="caret">▾</span></div>
+            <div class="menu-item child active">借阅记录</div>
+          </div>
+        </aside>
+
+        <main class="content">
+          <div class="page-head">
+            <div>
+              <div class="page-title">借阅记录</div>
+              <div class="page-sub">跟踪借出、归还与逾期状态</div>
+            </div>
+            <button type="button" class="btn primary">＋ 新增借阅</button>
+          </div>
+
+          <section class="card search-card">
+            <div class="input wide">读者姓名 / 图书名称</div>
+            <div class="select"><span>全部状态</span><span>▾</span></div>
+            <button type="button" class="btn primary">查询</button>
+            <button type="button" class="btn">重置</button>
+          </section>
+
+          <section class="card">
+            <table>
+              <thead>
+                <tr>
+                  <th>读者</th>
+                  <th>图书</th>
+                  <th>借出时间</th>
+                  <th>应还时间</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>读者一号</td>
+                  <td>深入理解计算机系统</td>
+                  <td class="mono">2026-10-01 10:00</td>
+                  <td class="mono">2026-10-31 10:00</td>
+                  <td><span class="tag info">借出</span></td>
+                  <td><div class="actions"><button class="btn sm">归还</button></div></td>
+                </tr>
+                <tr>
+                  <td>读者一号</td>
+                  <td>Vue.js 设计与实现</td>
+                  <td class="mono">2026-09-01 09:00</td>
+                  <td class="mono">2026-09-30 09:00</td>
+                  <td><span class="tag danger">逾期</span></td>
+                  <td><div class="actions"><button class="btn sm">归还</button></div></td>
+                </tr>
+                <tr>
+                  <td>测试读者</td>
+                  <td>MySQL 必知必会</td>
+                  <td class="mono">2026-08-01 09:00</td>
+                  <td class="mono">2026-08-31 09:00</td>
+                  <td><span class="tag success">已归还</span></td>
+                  <td><div class="actions"><button class="btn sm danger">删除</button></div></td>
+                </tr>
+                <tr>
+                  <td>读者一号</td>
+                  <td>图解 HTTP</td>
+                  <td class="mono">2026-07-15 13:30</td>
+                  <td class="mono">2026-08-14 13:30</td>
+                  <td><span class="tag success">已归还</span></td>
+                  <td><div class="actions"><button class="btn sm danger">删除</button></div></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="pager">
+              <span>共 4 条</span>
+              <div class="pages">
+                <span class="page-num active">1</span>
+                <span>10 条/页</span>
+              </div>
+            </div>
+          </section>
+
+          <div class="note">状态色只用于标签：借出（主色）/ 逾期（危险色）/ 已归还（成功色）；归还与删除均先二次确认。</div>
+        </main>
+      </div>
+      <div class="sketch__tag">草图 04 / 核心业务页 · 借阅记录与状态流转</div>
+    </div>
+  </body>
+</html>

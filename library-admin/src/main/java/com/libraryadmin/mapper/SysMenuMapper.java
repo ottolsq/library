@@ -38,7 +38,10 @@ public interface SysMenuMapper extends BaseMapper<SysMenu> {
     Integer selectUserRole(Long userId);
 
     /**
-     * 按角色查询绑定的按钮权限标识（F 节点的 perms）
+     * 按角色查询绑定的权限标识
+     *
+     * <p>同时取 C 菜单的查询权限（如 book:query）与 F 按钮的操作权限（如 book:add）。
+     * 只取 F 节点会导致普通角色能拿到操作权限、却无法调用列表查询接口。
      *
      * @param roleId 角色ID：0管理员，1读者
      * @return 权限标识列表（去重、去空）
@@ -48,7 +51,7 @@ public interface SysMenuMapper extends BaseMapper<SysMenu> {
             FROM sys_menu m
             JOIN sys_role_menu rm ON rm.menu_id = m.menu_id
             WHERE rm.role_id = #{roleId}
-              AND m.menu_type = 'F'
+              AND m.menu_type IN ('C', 'F')
               AND m.perms IS NOT NULL
             """)
     List<String> selectPermsByRoleId(Integer roleId);

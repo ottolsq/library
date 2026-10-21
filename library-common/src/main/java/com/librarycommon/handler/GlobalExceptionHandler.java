@@ -5,6 +5,7 @@ import com.librarycommon.result.Result;
 import com.librarycommon.result.ResultCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -32,6 +33,18 @@ public class GlobalExceptionHandler {
     public Result<Void> handleBizException(BizException e) {
         log.warn("业务异常: code={}, msg={}", e.getCode(), e.getMessage());
         return Result.fail(e.getCode(), e.getMessage());
+    }
+
+    /**
+     * 认证失败（登录账号或密码错误、账号被禁用等）
+     *
+     * <p>必须放在兜底异常之前单独处理，否则会被 {@link #handleException(Exception)}
+     * 转成「系统异常」，前端拿不到真实原因。
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public Result<Void> handleAuthenticationException(AuthenticationException e) {
+        log.warn("认证失败: {}", e.getMessage());
+        return Result.fail(ResultCode.BAD_REQUEST, e.getMessage());
     }
 
     /**
