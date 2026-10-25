@@ -31,6 +31,12 @@ public final class SecurityConstants {
     public static final String REDIS_LOGIN_USER_PREFIX = "login:user:";
 
     /**
+     * Redis 改密时间前缀：值为改密时的 epoch 秒，
+     * 用于拒绝签发时间早于改密时间的旧令牌
+     */
+    public static final String REDIS_PWD_CHANGED_PREFIX = "pwd:changed:";
+
+    /**
      * Access Token 有效期：24 小时（毫秒）
      */
     public static final long ACCESS_TOKEN_EXPIRE = 24 * 60 * 60 * 1000L;
@@ -46,9 +52,14 @@ public final class SecurityConstants {
     public static final String JWT_USER_ID = "userId";
 
     /**
-     * JWT 载荷：签发时间
+     * JWT 载荷：签发时间（秒，标准字段）
      */
     public static final String JWT_ISSUED_AT = "iat";
+
+    /**
+     * JWT 载荷：签发时间（毫秒，用于改密后精确判定旧令牌）
+     */
+    public static final String JWT_ISSUED_AT_MS = "iatMs";
 
     /**
      * JWT 载荷：过期时间
@@ -92,6 +103,7 @@ public final class SecurityConstants {
             "/user/logout",
             "/user/current",
             "/user/register",
+            "/user/password",
             "/menu/"
     };
 

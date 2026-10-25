@@ -14,6 +14,7 @@ import com.libraryadmin.mapper.BookMapper;
 import com.libraryadmin.mapper.BorrowMapper;
 import com.libraryadmin.mapper.ReaderMapper;
 import com.libraryadmin.service.BorrowService;
+import com.libraryadmin.util.BorrowRules;
 import com.librarycommon.exception.BizException;
 import com.librarycommon.result.ResultCode;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -36,23 +38,29 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> implements BorrowService {
 
-    /**
-     * 借阅状态常量（与 borrow 表 borrow_status 对齐）
-     */
-    private static final int STATUS_BORROWED = 0;
-    private static final int STATUS_RETURNED = 1;
-    private static final int STATUS_OVERDUE = 2;
-
     private final BookMapper bookMapper;
     private final ReaderMapper readerMapper;
     private final BorrowMapper borrowMapper;
 
     @Override
-    public IPage<BorrowVO> pageBorrows(long pageNum, long pageSize, String keyword, Integer status) {
-        // 先分页查借阅记录
-        LambdaQueryWrapper<Borrow> wrapper = new LambdaQueryWrapper<Borrow>()
-                .eq(status != null, Borrow::getBorrowStatus, status)
-                .orderByDesc(Borrow::getBorrowId);
+    public IPage<BorrowVO> pageBorrows(long pageNum, long pageSize, String keyword, Integer status,
+                                       Long currentUserId, boolean superAdmin) {
+        // 逾期状态由定时任务回写；查询时按“有效状态”兜底过滤与展示，避免读请求产生写操作
+        LocalDateTime now = LocalDateTime.now();
+        LambdaQueryWrapper<Borrow> wrapper = new LambdaQueryWrapper<>();
+        appendStatusFilter(wrapper, status, now);
+        wrapper.orderByDesc(Borrow::getBorrowId);
+
+        // 非管理员只能查看本人读者档案下的记录（水平越权防护）
+        if (!superAdmin) {
+            Reader self = readerMapper.selectOne(new LambdaQueryWrapper<Reader>()
+                    .eq(Reader::getUserId, currentUserId));
+            if (self == null) {
+                return emptyPage(pageNum, pageSize, 0);
+            }
+            wrapper.eq(Borrow::getReaderId, self.getReaderId());
+        }
+
         if (StringUtils.hasText(keyword)) {
             // 关键词匹配读者姓名 / 学号（先查出读者 ID，再按 ID 过滤借阅记录）
             List<Long> readerIds = readerMapper.selectList(
@@ -67,9 +75,7 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> impleme
                     .stream().map(Book::getBookId).toList();
             if (readerIds.isEmpty() && bookIds.isEmpty()) {
                 // 关键词命中不了任何读者或图书，直接返回空页
-                Page<BorrowVO> empty = new Page<>(pageNum, pageSize, 0);
-                empty.setRecords(List.of());
-                return empty;
+                return emptyPage(pageNum, pageSize, 0);
             }
             wrapper.and(w -> {
                 if (!readerIds.isEmpty()) {
@@ -87,9 +93,7 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> impleme
         // 联表字段（读者姓名、图书信息）按 ID 批量补齐，避免 N+1
         List<Borrow> records = page.getRecords();
         if (records.isEmpty()) {
-            Page<BorrowVO> empty = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
-            empty.setRecords(List.of());
-            return empty;
+            return emptyPage(page.getCurrent(), page.getSize(), page.getTotal());
         }
         List<Long> readerIds = records.stream().map(Borrow::getReaderId).distinct().toList();
         List<Long> bookIds = records.stream().map(Borrow::getBookId).distinct().toList();
@@ -109,18 +113,29 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> impleme
     @Override
     @Transactional
     public Long createBorrow(CreateBorrowDTO dto) {
-        // 1. 读者存在且状态正常
-        Reader reader = readerMapper.selectById(dto.readerId());
+        LocalDateTime now = LocalDateTime.now();
+        // 未指定应还时间时，服务端按默认借期生成，避免依赖前端传值
+        LocalDateTime shouldReturnTime = dto.shouldReturnTime() == null
+                ? BorrowRules.defaultShouldReturnTime(now)
+                : dto.shouldReturnTime();
+        if (!shouldReturnTime.isAfter(now)) {
+            throw new BizException(ResultCode.PARAM_INVALID, "应还时间必须晚于当前时间");
+        }
+        // 1. 读者存在且状态正常（FOR UPDATE 锁定读者行，避免并发借书绕过可借上限）
+        Reader reader = readerMapper.selectOne(new LambdaQueryWrapper<Reader>()
+                .eq(Reader::getReaderId, dto.readerId())
+                .last("FOR UPDATE"));
         if (reader == null) {
             throw new BizException(ResultCode.DATA_NOT_FOUND, "读者不存在");
         }
         if (reader.getStatus() == null || reader.getStatus() != 1) {
             throw new BizException(ResultCode.PARAM_INVALID, "读者已被禁用");
         }
-        // 2. 读者当前在借数量未达上限
+        // 2. 读者当前在借数量未达上限（借出与逾期都占用额度）
         Long borrowing = lambdaQuery()
                 .eq(Borrow::getReaderId, dto.readerId())
-                .eq(Borrow::getBorrowStatus, STATUS_BORROWED)
+                .in(Borrow::getBorrowStatus,
+                        BorrowRules.STATUS_BORROWED, BorrowRules.STATUS_OVERDUE)
                 .count();
         if (borrowing != null && reader.getMaxBorrowCnt() != null
                 && borrowing >= reader.getMaxBorrowCnt()) {
@@ -139,9 +154,9 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> impleme
         Borrow borrow = new Borrow();
         borrow.setReaderId(dto.readerId());
         borrow.setBookId(dto.bookId());
-        borrow.setBorrowTime(LocalDateTime.now());
-        borrow.setShouldReturnTime(dto.shouldReturnTime());
-        borrow.setBorrowStatus(STATUS_BORROWED);
+        borrow.setBorrowTime(now);
+        borrow.setShouldReturnTime(shouldReturnTime);
+        borrow.setBorrowStatus(BorrowRules.STATUS_BORROWED);
         save(borrow);
         int updated = bookMapper.update(
                 new LambdaUpdateWrapper<Book>()
@@ -156,17 +171,18 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> impleme
 
     @Override
     @Transactional
-    public void returnBook(Long borrowId) {
+    public void returnBook(Long borrowId, Long currentUserId, boolean superAdmin) {
         Borrow borrow = requireBorrow(borrowId);
+        assertOwnership(borrow, currentUserId, superAdmin);
         // 借出与逾期都允许归还；只有已归还的记录才拒绝重复归还
         if (borrow.getBorrowStatus() != null
-                && borrow.getBorrowStatus() != STATUS_BORROWED
-                && borrow.getBorrowStatus() != STATUS_OVERDUE) {
+                && borrow.getBorrowStatus() != BorrowRules.STATUS_BORROWED
+                && borrow.getBorrowStatus() != BorrowRules.STATUS_OVERDUE) {
             throw new BizException(ResultCode.PARAM_INVALID, "该记录已归还");
         }
         // 事务内：写归还时间改状态 + 回补库存
         borrow.setActualReturnTime(LocalDateTime.now());
-        borrow.setBorrowStatus(STATUS_RETURNED);
+        borrow.setBorrowStatus(BorrowRules.STATUS_RETURNED);
         updateById(borrow);
         bookMapper.update(
                 new LambdaUpdateWrapper<Book>()
@@ -176,9 +192,11 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> impleme
 
     @Override
     @Transactional
-    public void deleteBorrow(Long borrowId) {
+    public void deleteBorrow(Long borrowId, Long currentUserId, boolean superAdmin) {
         Borrow borrow = requireBorrow(borrowId);
-        if (borrow.getBorrowStatus() == null || borrow.getBorrowStatus() != STATUS_RETURNED) {
+        assertOwnership(borrow, currentUserId, superAdmin);
+        if (borrow.getBorrowStatus() == null
+                || borrow.getBorrowStatus() != BorrowRules.STATUS_RETURNED) {
             // 仅已归还的记录允许删除；借出/逾期记录删除会导致库存与记录失去对应
             throw new BizException(ResultCode.PARAM_INVALID, "仅已归还的记录允许删除");
         }
@@ -193,7 +211,65 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> impleme
         return borrow;
     }
 
+    @Override
+    public int markOverdue() {
+        return borrowMapper.update(null, new LambdaUpdateWrapper<Borrow>()
+                .eq(Borrow::getBorrowStatus, BorrowRules.STATUS_BORROWED)
+                .lt(Borrow::getShouldReturnTime, LocalDateTime.now())
+                .set(Borrow::getBorrowStatus, BorrowRules.STATUS_OVERDUE));
+    }
+
+    /**
+     * 非管理员只能操作本人读者档案下的记录（水平越权防护）。
+     */
+    private void assertOwnership(Borrow borrow, Long currentUserId, boolean superAdmin) {
+        if (superAdmin) {
+            return;
+        }
+        Reader self = readerMapper.selectOne(new LambdaQueryWrapper<Reader>()
+                .eq(Reader::getUserId, currentUserId));
+        if (self == null || !Objects.equals(self.getReaderId(), borrow.getReaderId())) {
+            throw new BizException(ResultCode.FORBIDDEN, "无权操作他人的借阅记录");
+        }
+    }
+
+    /**
+     * 按“有效状态”拼接筛选条件：数据库中的借出记录若已过期，也应按逾期命中。
+     */
+    private void appendStatusFilter(LambdaQueryWrapper<Borrow> wrapper,
+                                    Integer status,
+                                    LocalDateTime now) {
+        if (status == null) {
+            return;
+        }
+        if (status == BorrowRules.STATUS_BORROWED) {
+            wrapper.eq(Borrow::getBorrowStatus, BorrowRules.STATUS_BORROWED)
+                    .ge(Borrow::getShouldReturnTime, now);
+            return;
+        }
+        if (status == BorrowRules.STATUS_OVERDUE) {
+            wrapper.and(w -> w.eq(Borrow::getBorrowStatus, BorrowRules.STATUS_OVERDUE)
+                    .or(o -> o.eq(Borrow::getBorrowStatus, BorrowRules.STATUS_BORROWED)
+                            .lt(Borrow::getShouldReturnTime, now)));
+            return;
+        }
+        wrapper.eq(Borrow::getBorrowStatus, status);
+    }
+
+    private Page<BorrowVO> emptyPage(long pageNum, long pageSize, long total) {
+        Page<BorrowVO> empty = new Page<>(pageNum, pageSize, total);
+        empty.setRecords(List.of());
+        return empty;
+    }
+
     private BorrowVO toVO(Borrow borrow, Reader reader, Book book) {
+        LocalDateTime now = LocalDateTime.now();
+        int effectiveStatus = BorrowRules.effectiveStatus(
+                borrow.getBorrowStatus(), borrow.getShouldReturnTime(), now);
+        LocalDateTime end = borrow.getActualReturnTime() != null
+                ? borrow.getActualReturnTime()
+                : now;
+        long overdueDays = BorrowRules.overdueDays(borrow.getShouldReturnTime(), end);
         return new BorrowVO(
                 borrow.getBorrowId(),
                 borrow.getReaderId(),
@@ -204,7 +280,8 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> impleme
                 borrow.getBorrowTime(),
                 borrow.getShouldReturnTime(),
                 borrow.getActualReturnTime(),
-                borrow.getBorrowStatus()
+                effectiveStatus,
+                overdueDays
         );
     }
 }

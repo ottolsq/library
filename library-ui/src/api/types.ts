@@ -81,6 +81,7 @@ export interface Book {
 
 export interface BookQuery extends PageQuery {
   keyword?: string
+  category?: string
 }
 
 export interface BookPayload {
@@ -132,6 +133,8 @@ export interface BorrowRecord {
   actualReturnTime: string | null
   /** 0 借出 / 1 已归还 / 2 逾期 */
   borrowStatus: number
+  /** 逾期天数，未逾期为 0 */
+  overdueDays: number
 }
 
 export interface BorrowQuery extends PageQuery {
@@ -142,8 +145,8 @@ export interface BorrowQuery extends PageQuery {
 export interface BorrowPayload {
   readerId: number
   bookId: number
-  /** LocalDateTime，格式 YYYY-MM-DDTHH:mm:ss */
-  shouldReturnTime: string
+  /** LocalDateTime，格式 YYYY-MM-DDTHH:mm:ss；留空时由服务端生成默认借期 */
+  shouldReturnTime?: string
 }
 
 /* ========== 系统用户 ========== */
@@ -179,4 +182,10 @@ export interface UserUpdatePayload {
   username?: string
   role?: number
   status?: UserStatus
+}
+
+/** 本人修改密码：PUT /user/password */
+export interface ChangePasswordPayload {
+  oldPassword: string
+  newPassword: string
 }

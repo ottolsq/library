@@ -5,9 +5,11 @@ import com.libraryadmin.dto.BorrowVO;
 import com.libraryadmin.dto.CreateBorrowDTO;
 import com.libraryadmin.service.BorrowService;
 import com.librarycommon.result.Result;
+import com.librarycommon.security.LoginUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,8 +44,11 @@ public class BorrowController {
             @RequestParam(defaultValue = "1") long pageNum,
             @RequestParam(defaultValue = "10") long pageSize,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Integer status) {
-        IPage<BorrowVO> page = borrowService.pageBorrows(pageNum, pageSize, keyword, status);
+            @RequestParam(required = false) Integer status,
+            @AuthenticationPrincipal LoginUser loginUser) {
+        IPage<BorrowVO> page = borrowService.pageBorrows(
+                pageNum, pageSize, keyword, status,
+                loginUser.getUserId(), loginUser.isSuperAdmin());
         return Result.ok(Map.of(
                 "total", page.getTotal(),
                 "pageNum", page.getCurrent(),
@@ -66,8 +71,9 @@ public class BorrowController {
      */
     @PutMapping("/{id}/return")
     @PreAuthorize("@ss.hasPermission('borrow:edit')")
-    public Result<Void> returnBook(@PathVariable Long id) {
-        borrowService.returnBook(id);
+    public Result<Void> returnBook(@PathVariable Long id,
+                                   @AuthenticationPrincipal LoginUser loginUser) {
+        borrowService.returnBook(id, loginUser.getUserId(), loginUser.isSuperAdmin());
         return Result.ok();
     }
 
@@ -76,8 +82,9 @@ public class BorrowController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("@ss.hasPermission('borrow:remove')")
-    public Result<Void> delete(@PathVariable Long id) {
-        borrowService.deleteBorrow(id);
+    public Result<Void> delete(@PathVariable Long id,
+                               @AuthenticationPrincipal LoginUser loginUser) {
+        borrowService.deleteBorrow(id, loginUser.getUserId(), loginUser.isSuperAdmin());
         return Result.ok();
     }
 }

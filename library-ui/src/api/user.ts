@@ -1,5 +1,6 @@
 import { http } from './request'
 import type {
+  ChangePasswordPayload,
   PageQuery,
   PageResult,
   UserCreatePayload,
@@ -36,6 +37,11 @@ export function updateUserStatus(id: number, status: 0 | 1): Promise<void> {
 /** 重置密码：PUT /user/{id}/password */
 export function resetPassword(id: number, newPassword: string): Promise<void> {
   return http.put<void>(`/user/${id}/password`, { newPassword })
+}
+
+/** 本人修改密码：PUT /user/password（需校验原密码） */
+export function changePassword(data: ChangePasswordPayload): Promise<void> {
+  return http.put<void>('/user/password', data)
 }
 
 /** 删除用户：DELETE /user/{id} */

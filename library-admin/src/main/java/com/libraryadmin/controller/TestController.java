@@ -10,6 +10,7 @@ import com.librarycommon.result.Result;
 import com.librarycommon.result.ResultCode;
 import com.librarycommon.util.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,6 +24,7 @@ import java.util.Map;
 /**
  * 联调验证接口（仅用于本地开发环境）
  */
+@Profile("dev")
 @RestController
 @RequestMapping("/test")
 public class TestController {

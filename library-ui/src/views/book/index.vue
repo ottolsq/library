@@ -28,6 +28,7 @@ const total = ref(0)
 const pageNum = ref(1)
 const pageSize = ref(10)
 const keyword = ref('')
+const category = ref('')
 
 async function loadBooks(): Promise<void> {
   loading.value = true
@@ -36,6 +37,7 @@ async function loadBooks(): Promise<void> {
       pageNum: pageNum.value,
       pageSize: pageSize.value,
       keyword: keyword.value.trim() || undefined,
+      category: category.value.trim() || undefined,
     })
     rows.value = page.items
     total.value = page.total
@@ -54,6 +56,7 @@ function search(): void {
 
 function resetSearch(): void {
   keyword.value = ''
+  category.value = ''
   pageNum.value = 1
   void loadBooks()
 }
@@ -231,6 +234,13 @@ async function removeBook(row: Book): Promise<void> {
         clearable
         @keyup.enter="search"
       />
+      <el-input
+        v-model="category"
+        class="category-input"
+        placeholder="分类"
+        clearable
+        @keyup.enter="search"
+      />
       <el-button type="primary" @click="search">查询</el-button>
       <el-button @click="resetSearch">重置</el-button>
     </SearchCard>
@@ -323,6 +333,10 @@ async function removeBook(row: Book): Promise<void> {
 <style scoped>
 .search-input {
   width: 260px;
+}
+
+.category-input {
+  width: 150px;
 }
 
 .form-grid {

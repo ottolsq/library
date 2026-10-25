@@ -78,6 +78,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        // 4.1 改密后拒绝旧令牌：令牌签发时间早于最近一次改密时间即视为失效
+        Number changedAt = redisCacheUtil.get(
+                SecurityConstants.REDIS_PWD_CHANGED_PREFIX + userId, Number.class);
+        if (changedAt != null) {
+            Long issuedAt = JwtUtil.getIssuedAtMillis(token);
+            if (issuedAt == null || issuedAt < changedAt.longValue()) {
+                log.warn("令牌早于改密时间，拒绝认证: userId={}, uri={}",
+                        userId, request.getRequestURI());
+                filterChain.doFilter(request, response);
+                return;
+            }
+        }
+
         // 5. 用该 ID 从 Redis 取回用户详情
         String redisKey = SecurityConstants.REDIS_LOGIN_USER_PREFIX + userId;
         LoginUser loginUser = redisCacheUtil.get(redisKey, LoginUser.class);

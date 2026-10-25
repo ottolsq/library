@@ -4,6 +4,12 @@ import { useAuthStore } from '@/stores/auth'
 import { findFirstMenuPath } from '@/utils/menu'
 
 /**
+ * 受保护的业务路径前缀：动态路由未注册时命中这些地址，
+ * 说明当前角色无权访问，应进入 403 而不是 404。
+ */
+const PROTECTED_PREFIXES = ['/user', '/reader', '/book', '/borrow']
+
+/**
  * 全局路由守卫：
  * 1. 未登录拦截 → /login?redirect=...
  * 2. 刷新后补加载用户档案与菜单
@@ -65,6 +71,16 @@ export function setupRouterGuard(): void {
       return firstPath
         ? { path: firstPath, replace: true }
         : { path: '/403', replace: true }
+    }
+
+    // 动态路由未注册的受保护路径：当前角色无权访问，进入 403 而非 404
+    if (to.name === 'NotFound') {
+      const isProtected = PROTECTED_PREFIXES.some(
+        (prefix) => to.path === prefix || to.path.startsWith(`${prefix}/`),
+      )
+      if (isProtected) {
+        return { path: '/403', replace: true }
+      }
     }
 
     // 页面级权限兜底

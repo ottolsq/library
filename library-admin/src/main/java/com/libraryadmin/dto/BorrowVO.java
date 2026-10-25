@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
  * @param shouldReturnTime 应还到期时间
  * @param actualReturnTime 实际归还时间，null代表未归还
  * @param borrowStatus     借阅状态：0借出，1已归还，2逾期
+ * @param overdueDays      逾期天数，未逾期为 0
  */
 public record BorrowVO(
         Long borrowId,
@@ -26,6 +27,7 @@ public record BorrowVO(
         LocalDateTime borrowTime,
         LocalDateTime shouldReturnTime,
         LocalDateTime actualReturnTime,
-        Integer borrowStatus
+        Integer borrowStatus,
+        long overdueDays
 ) {
 }

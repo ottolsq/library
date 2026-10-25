@@ -19,7 +19,29 @@ import java.util.Map;
  */
 public final class JwtUtil {
 
+    /**
+     * 当前签名密钥：默认值为本地开发占位，应用启动时由
+     * {@code security.jwt.secret} 注入覆盖（生产环境通过环境变量 JWT_SECRET 提供）。
+     */
+    private static volatile String secret = SecurityConstants.JWT_SECRET;
+
     private JwtUtil() {
+    }
+
+    /**
+     * 设置签名密钥（由 JwtSecretConfig 在启动时调用）
+     */
+    public static void setSecret(String value) {
+        if (value != null && !value.isBlank()) {
+            secret = value;
+        }
+    }
+
+    /**
+     * 读取当前签名密钥（仅供测试与诊断使用）
+     */
+    public static String getSecret() {
+        return secret;
     }
 
     /**
@@ -29,7 +51,7 @@ public final class JwtUtil {
      * @return JWT token
      */
     public static String createToken(Long userId) {
-        return createToken(userId, SecurityConstants.JWT_SECRET);
+        return createToken(userId, secret);
     }
 
     /**
@@ -46,6 +68,8 @@ public final class JwtUtil {
         Map<String, Object> payload = new HashMap<>();
         payload.put(SecurityConstants.JWT_USER_ID, userId);
         payload.put(SecurityConstants.JWT_ISSUED_AT, nowSeconds);
+        // 毫秒级签发时间：改密后用于精确拒绝同一秒内签发的旧令牌
+        payload.put(SecurityConstants.JWT_ISSUED_AT_MS, System.currentTimeMillis());
         payload.put(SecurityConstants.JWT_EXPIRATION, expSeconds);
 
         return JWTUtil.createToken(payload, secret.getBytes(StandardCharsets.UTF_8));
@@ -58,7 +82,7 @@ public final class JwtUtil {
      * @return true 有效
      */
     public static boolean validateToken(String token) {
-        return validateToken(token, SecurityConstants.JWT_SECRET);
+        return validateToken(token, secret);
     }
 
     /**
@@ -88,7 +112,7 @@ public final class JwtUtil {
      * @return 用户主键ID，无效 token 返回 null
      */
     public static Long parseUserId(String token) {
-        return parseUserId(token, SecurityConstants.JWT_SECRET);
+        return parseUserId(token, secret);
     }
 
     /**
@@ -116,7 +140,7 @@ public final class JwtUtil {
      * @return 有效期秒数，无效 token 返回 0
      */
     public static long getExpireSeconds(String token) {
-        return getExpireSeconds(token, SecurityConstants.JWT_SECRET);
+        return getExpireSeconds(token, secret);
     }
 
     /**
@@ -142,6 +166,60 @@ public final class JwtUtil {
             return Math.max(remain, 0);
         } catch (Exception e) {
             return 0;
+        }
+    }
+
+    /**
+     * 读取 token 的签发时间（秒）
+     *
+     * <p>用于在改密后判断令牌是否早于改密时间，从而拒绝所有旧令牌。
+     *
+     * @param token JWT token
+     * @return 签发时间（epoch 秒），无效 token 返回 null
+     */
+    public static Long getIssuedAtSeconds(String token) {
+        return getIssuedAtSeconds(token, secret);
+    }
+
+    /**
+     * 读取 token 的签发时间（秒，可自定义密钥）
+     */
+    public static Long getIssuedAtSeconds(String token, String secret) {
+        if (!validateToken(token, secret)) {
+            return null;
+        }
+        try {
+            return Convert.toLong(
+                    JWTUtil.parseToken(token).getPayload(SecurityConstants.JWT_ISSUED_AT));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * 读取 token 的签发时间（毫秒）
+     *
+     * <p>用于改密后精确判定：旧令牌的签发时间早于改密时间即拒绝。
+     *
+     * @param token JWT token
+     * @return 签发时间（epoch 毫秒），无效 token 或无该字段时返回 null
+     */
+    public static Long getIssuedAtMillis(String token) {
+        return getIssuedAtMillis(token, secret);
+    }
+
+    /**
+     * 读取 token 的签发时间（毫秒，可自定义密钥）
+     */
+    public static Long getIssuedAtMillis(String token, String secret) {
+        if (!validateToken(token, secret)) {
+            return null;
+        }
+        try {
+            return Convert.toLong(JWTUtil.parseToken(token)
+                    .getPayload(SecurityConstants.JWT_ISSUED_AT_MS));
+        } catch (Exception e) {
+            return null;
         }
     }
 

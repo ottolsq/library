@@ -22,4 +22,15 @@ export default defineConfig({
       },
     },
   },
+  // 生产构建预览：用于首屏性能测量，行为与 Nginx 反向代理一致
+  preview: {
+    port: 4173,
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:8080',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
+  },
 })

@@ -106,14 +106,6 @@ const form = reactive<BorrowFormModel>({
   shouldReturnTime: '',
 })
 
-function defaultReturnTime(): string {
-  const date = new Date()
-  date.setDate(date.getDate() + 30)
-  date.setSeconds(0, 0)
-  const pad = (value: number): string => String(value).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:00`
-}
-
 function disabledDate(date: Date): boolean {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -146,14 +138,10 @@ const rules: FormRules<BorrowFormModel> = {
     },
   ],
   shouldReturnTime: [
-    { required: true, message: '请选择应还时间', trigger: 'change' },
     {
+      // 允许留空，由服务端按默认借期生成；填写时必须是未来时间
       validator: (_rule, value, callback) => {
-        if (!value) {
-          callback(new Error('请选择应还时间'))
-          return
-        }
-        if (new Date(value).getTime() <= Date.now()) {
+        if (value && new Date(value).getTime() <= Date.now()) {
           callback(new Error('应还时间必须晚于当前时间'))
           return
         }
@@ -168,7 +156,7 @@ function openCreate(): void {
   Object.assign(form, {
     readerId: readerOptions.value[0]?.readerId ?? 0,
     bookId: 0,
-    shouldReturnTime: defaultReturnTime(),
+    shouldReturnTime: '',
   })
   dialogVisible.value = true
   void nextTick(() => formRef.value?.clearValidate())
@@ -187,7 +175,7 @@ async function submitForm(): Promise<void> {
     await createBorrow({
       readerId: form.readerId,
       bookId: form.bookId,
-      shouldReturnTime: form.shouldReturnTime,
+      shouldReturnTime: form.shouldReturnTime || undefined,
     })
     ElMessage.success('新增借阅成功')
     dialogVisible.value = false
@@ -292,6 +280,14 @@ async function removeBorrow(row: BorrowRecord): Promise<void> {
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="逾期" width="90">
+          <template #default="{ row }">
+            <el-tag v-if="row.overdueDays > 0" type="danger" effect="plain" round>
+              {{ row.overdueDays }} 天
+            </el-tag>
+            <span v-else class="muted">—</span>
+          </template>
+        </el-table-column>
         <el-table-column v-if="canOperate" label="操作" width="140">
           <template #default="{ row }">
             <div class="table-actions">
@@ -376,11 +372,12 @@ async function removeBorrow(row: BorrowRecord): Promise<void> {
           <el-date-picker
             v-model="form.shouldReturnTime"
             type="datetime"
-            placeholder="选择应还时间"
+            placeholder="留空则默认借期 30 天"
             value-format="YYYY-MM-DDTHH:mm:ss"
             :disabled-date="disabledDate"
           />
         </el-form-item>
+        <p class="form-hint">不填写时由服务端按默认借期（30 天）生成。</p>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -404,6 +401,10 @@ async function removeBorrow(row: BorrowRecord): Promise<void> {
 .form-hint {
   margin: -10px 0 16px;
   font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.muted {
   color: var(--color-text-muted);
 }
 </style>

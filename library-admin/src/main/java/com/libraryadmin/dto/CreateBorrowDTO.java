@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
  *
  * @param readerId         读者ID
  * @param bookId           图书ID
- * @param shouldReturnTime 应还到期时间
+ * @param shouldReturnTime 应还到期时间；为空时由服务端按默认借期生成
  */
 public record CreateBorrowDTO(
         @NotNull(message = "读者不能为空")
@@ -19,7 +19,6 @@ public record CreateBorrowDTO(
         @NotNull(message = "图书不能为空")
         Long bookId,
 
-        @NotNull(message = "应还时间不能为空")
         @Future(message = "应还时间必须晚于当前时间")
         LocalDateTime shouldReturnTime
 ) {

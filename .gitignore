@@ -3,6 +3,8 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 doc/
+docs/
+library-ui/docs/
 *.log
 .claude/
 

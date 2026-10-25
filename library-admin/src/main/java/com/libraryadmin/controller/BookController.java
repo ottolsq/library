@@ -42,8 +42,9 @@ public class BookController {
     public Result<Map<String, Object>> list(
             @RequestParam(defaultValue = "1") long pageNum,
             @RequestParam(defaultValue = "10") long pageSize,
-            @RequestParam(required = false) String keyword) {
-        IPage<Book> page = bookService.pageBooks(pageNum, pageSize, keyword);
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category) {
+        IPage<Book> page = bookService.pageBooks(pageNum, pageSize, keyword, category);
         return Result.ok(Map.of(
                 "total", page.getTotal(),
                 "pageNum", page.getCurrent(),
@@ -58,7 +59,7 @@ public class BookController {
     @GetMapping("/{id}")
     @PreAuthorize("@ss.hasPermission('book:query')")
     public Result<Book> detail(@PathVariable Long id) {
-        return Result.ok(bookService.getById(id));
+        return Result.ok(bookService.getBook(id));
     }
 
     /**

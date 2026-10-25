@@ -57,7 +57,7 @@ public class ReaderController {
     @GetMapping("/{id}")
     @PreAuthorize("@ss.hasPermission('reader:query')")
     public Result<Reader> detail(@PathVariable Long id) {
-        return Result.ok(readerService.getById(id));
+        return Result.ok(readerService.getReader(id));
     }
 
     /**

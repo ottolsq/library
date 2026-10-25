@@ -16,6 +16,11 @@ public interface ReaderService extends IService<Reader> {
     IPage<Reader> pageReaders(long pageNum, long pageSize, String keyword);
 
     /**
+     * 查询读者档案，不存在时抛出业务异常
+     */
+    Reader getReader(Long readerId);
+
+    /**
      * 新增读者档案（学号唯一性校验）
      */
     Long createReader(SaveReaderDTO dto);

@@ -23,7 +23,7 @@ import org.springframework.util.StringUtils;
 public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements BookService {
 
     @Override
-    public IPage<Book> pageBooks(long pageNum, long pageSize, String keyword) {
+    public IPage<Book> pageBooks(long pageNum, long pageSize, String keyword, String category) {
         LambdaQueryWrapper<Book> wrapper = Wrappers.lambdaQuery();
         if (StringUtils.hasText(keyword)) {
             // 关键词同时匹配书名 / 作者 / ISBN
@@ -32,8 +32,15 @@ public class BookServiceImpl extends ServiceImpl<BookMapper, Book> implements Bo
                     .or().like(Book::getAuthor, keyword)
                     .or().like(Book::getIsbn, keyword));
         }
+        // 分类为精确筛选，与关键词之间是 AND 关系，支持组合查询
+        wrapper.eq(StringUtils.hasText(category), Book::getCategory, category);
         wrapper.orderByDesc(Book::getBookId);
         return page(new Page<>(pageNum, pageSize), wrapper);
+    }
+
+    @Override
+    public Book getBook(Long bookId) {
+        return requireBook(bookId);
     }
 
     @Override
