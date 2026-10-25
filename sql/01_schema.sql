@@ -1,4 +1,5 @@
--- 先删除库（可选，全新环境注释掉）
+-- 01_schema.sql 图书管理系统基础库表
+-- 说明：首次初始化时执行；会删除并重建 book_library 库，请先确认无需保留数据。
 DROP DATABASE IF EXISTS book_library;
 CREATE DATABASE book_library DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 USE book_library;

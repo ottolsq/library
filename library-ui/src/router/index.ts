@@ -14,6 +14,12 @@ const router = createRouter({
       meta: { title: '登录', public: true },
     },
     {
+      path: '/register',
+      name: 'Register',
+      component: () => import('@/views/register/index.vue'),
+      meta: { title: '注册', public: true },
+    },
+    {
       path: '/403',
       name: 'Forbidden',
       component: () => import('@/views/error/403.vue'),

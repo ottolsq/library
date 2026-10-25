@@ -31,6 +31,16 @@ export interface LoginPayload {
   password: string
 }
 
+/** 读者自助注册参数：POST /user/register */
+export interface RegisterPayload {
+  username: string
+  password: string
+  confirmPassword: string
+  readerName: string
+  studentId: string
+  phone?: string
+}
+
 /** 登录响应：登录接口不返回菜单树 */
 export interface LoginResult {
   token: string

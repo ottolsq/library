@@ -70,6 +70,14 @@ async function handleSubmit(): Promise<void> {
 }
 
 onMounted(async () => {
+  // 注册成功回跳：提示并预填账号
+  if (route.query.registered === '1') {
+    ElMessage.success('注册成功，请登录')
+    if (typeof route.query.username === 'string') {
+      form.username = route.query.username
+    }
+  }
+
   // 已有令牌（例如刷新页面）则先恢复档案与菜单，再直接跳走
   if (!auth.token) {
     return
@@ -153,7 +161,10 @@ onMounted(async () => {
           </el-button>
         </el-form>
 
-        <p class="login-hint">账号由系统管理员分配</p>
+        <p class="login-hint">
+          没有账号？
+          <router-link class="register-link" to="/register">立即注册</router-link>
+        </p>
       </div>
     </section>
   </main>
@@ -352,6 +363,18 @@ onMounted(async () => {
   font-size: 12px;
   color: var(--color-text-muted);
   text-align: center;
+}
+
+.register-link {
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.register-link:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 @keyframes login-rise {

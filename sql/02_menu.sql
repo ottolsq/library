@@ -1,5 +1,6 @@
--- 实验5 增量脚本：菜单表 + 角色菜单绑定 + 种子数据
--- 在已有 book_library 库上执行（幂等：先删后建）
+-- 02_menu.sql 菜单与角色绑定
+-- 说明：在 01_schema.sql 之后执行；包含菜单表、角色菜单绑定和测试种子数据。
+-- 幂等：先删除 sys_role_menu / sys_menu 再重建。
 USE book_library;
 
 -- 5. 菜单表 sys_menu（M目录/C菜单/F按钮 三层）

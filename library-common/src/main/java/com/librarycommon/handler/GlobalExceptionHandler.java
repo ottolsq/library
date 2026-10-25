@@ -4,6 +4,7 @@ import com.librarycommon.exception.BizException;
 import com.librarycommon.result.Result;
 import com.librarycommon.result.ResultCode;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.BindException;
@@ -45,6 +46,15 @@ public class GlobalExceptionHandler {
     public Result<Void> handleAuthenticationException(AuthenticationException e) {
         log.warn("认证失败: {}", e.getMessage());
         return Result.fail(ResultCode.BAD_REQUEST, e.getMessage());
+    }
+
+    /**
+     * 数据库唯一约束冲突：并发注册等场景下由数据库兜底
+     */
+    @ExceptionHandler(DuplicateKeyException.class)
+    public Result<Void> handleDuplicateKey(DuplicateKeyException e) {
+        log.warn("唯一约束冲突: {}", e.getMessage());
+        return Result.fail(ResultCode.DATA_ALREADY_EXISTS, "账号或学号已存在");
     }
 
     /**

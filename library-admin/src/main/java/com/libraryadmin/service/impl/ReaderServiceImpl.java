@@ -50,6 +50,11 @@ public class ReaderServiceImpl extends ServiceImpl<ReaderMapper, Reader> impleme
     }
 
     @Override
+    public Reader getByStudentId(String studentId) {
+        return lambdaQuery().eq(Reader::getStudentId, studentId).one();
+    }
+
+    @Override
     public Long createReader(SaveReaderDTO dto) {
         checkStudentIdUnique(dto.studentId(), null);
         checkUserAvailable(dto.userId(), null);
