@@ -19,6 +19,7 @@ import type {
 } from '@/api/types'
 import { ROLE_OPTIONS, USER_STATUS_OPTIONS, roleLabel, userStatusLabel } from '@/utils/dict'
 import { formatDateTime } from '@/utils/format'
+import { useAuthStore } from '@/stores/auth'
 
 interface UserFormModel {
   username: string
@@ -26,6 +27,9 @@ interface UserFormModel {
   role: number
   status: UserStatus
 }
+
+const auth = useAuthStore()
+const currentUserId = computed(() => auth.user?.userId ?? null)
 
 const loading = ref(false)
 const rows = ref<UserListItem[]>([])
@@ -266,10 +270,17 @@ async function removeUser(row: UserListItem): Promise<void> {
         <el-table-column label="操作" min-width="280">
           <template #default="{ row }">
             <div class="table-actions">
-              <el-button v-perm="'user:edit'" link type="primary" @click="openEdit(row)">
+              <el-button
+                v-if="row.userId !== currentUserId"
+                v-perm="'user:edit'"
+                link
+                type="primary"
+                @click="openEdit(row)"
+              >
                 编辑
               </el-button>
               <el-button
+                v-if="row.userId !== currentUserId"
                 v-perm="'user:resetPwd'"
                 link
                 type="primary"
@@ -278,6 +289,7 @@ async function removeUser(row: UserListItem): Promise<void> {
                 重置密码
               </el-button>
               <el-button
+                v-if="row.userId !== currentUserId"
                 v-perm="'user:status'"
                 link
                 type="warning"
@@ -285,7 +297,13 @@ async function removeUser(row: UserListItem): Promise<void> {
               >
                 {{ row.status === 'ENABLED' ? '禁用' : '启用' }}
               </el-button>
-              <el-button v-perm="'user:delete'" link type="danger" @click="removeUser(row)">
+              <el-button
+                v-if="row.userId !== currentUserId"
+                v-perm="'user:delete'"
+                link
+                type="danger"
+                @click="removeUser(row)"
+              >
                 删除
               </el-button>
             </div>
@@ -322,7 +340,11 @@ async function removeUser(row: UserListItem): Promise<void> {
           />
         </el-form-item>
         <el-form-item label="角色" prop="role">
-          <el-select v-model="form.role" placeholder="请选择角色">
+          <el-select
+            v-model="form.role"
+            placeholder="请选择角色"
+            :disabled="dialogMode === 'edit' && editingId === currentUserId"
+          >
             <el-option
               v-for="option in ROLE_OPTIONS"
               :key="option.value"
@@ -331,8 +353,18 @@ async function removeUser(row: UserListItem): Promise<void> {
             />
           </el-select>
         </el-form-item>
+        <p
+          v-if="dialogMode === 'edit' && editingId === currentUserId"
+          class="form-hint"
+        >
+          不能修改当前登录账号的角色。
+        </p>
         <el-form-item label="状态" prop="status">
-          <el-select v-model="form.status" placeholder="请选择状态">
+          <el-select
+            v-model="form.status"
+            placeholder="请选择状态"
+            :disabled="dialogMode === 'edit' && editingId === currentUserId"
+          >
             <el-option
               v-for="option in USER_STATUS_OPTIONS"
               :key="option.value"
@@ -381,3 +413,11 @@ async function removeUser(row: UserListItem): Promise<void> {
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.form-hint {
+  margin: -10px 0 16px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+</style>

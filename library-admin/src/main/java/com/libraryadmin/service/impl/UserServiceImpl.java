@@ -5,6 +5,8 @@ import com.libraryadmin.entity.User;
 import com.libraryadmin.mapper.SysMenuMapper;
 import com.libraryadmin.mapper.UserMapper;
 import com.libraryadmin.service.UserService;
+import com.librarycommon.constant.SecurityConstants;
+import com.librarycommon.enums.UserRole;
 import com.librarycommon.security.AccountInfo;
 import com.librarycommon.security.AccountService;
 import com.librarycommon.security.PermissionService;
@@ -65,10 +67,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return new HashSet<>();
         }
         Set<String> roles = new HashSet<>();
-        if (user.getRole() == 0) {
-            roles.add("ROLE_ADMIN");
-        } else if (user.getRole() == 1) {
-            roles.add("ROLE_READER");
+        if (UserRole.ADMIN.getCode().equals(user.getRole())) {
+            roles.add(SecurityConstants.ROLE_ADMIN);
+        } else if (UserRole.READER.getCode().equals(user.getRole())) {
+            roles.add(SecurityConstants.ROLE_READER);
         }
         return roles;
     }

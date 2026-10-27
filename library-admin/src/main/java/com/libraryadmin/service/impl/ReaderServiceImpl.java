@@ -8,15 +8,20 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.libraryadmin.dto.SaveReaderDTO;
 import com.libraryadmin.entity.Borrow;
 import com.libraryadmin.entity.Reader;
+import com.libraryadmin.entity.User;
 import com.libraryadmin.mapper.BorrowMapper;
 import com.libraryadmin.mapper.ReaderMapper;
 import com.libraryadmin.mapper.UserMapper;
 import com.libraryadmin.service.ReaderService;
+import com.librarycommon.enums.UserRole;
+import com.librarycommon.enums.UserStatus;
 import com.librarycommon.exception.BizException;
 import com.librarycommon.result.ResultCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import java.util.Objects;
 
 /**
  * 读者 Service 实现
@@ -55,6 +60,11 @@ public class ReaderServiceImpl extends ServiceImpl<ReaderMapper, Reader> impleme
     }
 
     @Override
+    public Reader getByUserId(Long userId) {
+        return lambdaQuery().eq(Reader::getUserId, userId).one();
+    }
+
+    @Override
     public Long createReader(SaveReaderDTO dto) {
         checkStudentIdUnique(dto.studentId(), null);
         checkUserAvailable(dto.userId(), null);
@@ -68,7 +78,11 @@ public class ReaderServiceImpl extends ServiceImpl<ReaderMapper, Reader> impleme
     public void updateReader(Long readerId, SaveReaderDTO dto) {
         Reader reader = requireReader(readerId);
         checkStudentIdUnique(dto.studentId(), readerId);
-        checkUserAvailable(dto.userId(), readerId);
+        // 仅更换关联账号时才校验角色/状态/占用；
+        // 关联账号未变时允许继续编辑，避免账号被提升为管理员后档案无法维护
+        if (!Objects.equals(dto.userId(), reader.getUserId())) {
+            checkUserAvailable(dto.userId(), readerId);
+        }
         copyProps(dto, reader);
         updateById(reader);
     }
@@ -98,11 +112,21 @@ public class ReaderServiceImpl extends ServiceImpl<ReaderMapper, Reader> impleme
     }
 
     /**
-     * 关联用户必须存在，且不能被其他读者档案占用（user 与 reader 一对一）
+     * 关联用户必须是读者角色，且不能被其他读者档案占用（user 与 reader 一对一）
      */
     private void checkUserAvailable(Long userId, Long excludeReaderId) {
-        if (userId == null || userMapper.selectById(userId) == null) {
+        if (userId == null) {
             throw new BizException(ResultCode.DATA_NOT_FOUND, "关联用户不存在");
+        }
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BizException(ResultCode.DATA_NOT_FOUND, "关联用户不存在");
+        }
+        if (!UserRole.READER.getCode().equals(user.getRole())) {
+            throw new BizException(ResultCode.PARAM_INVALID, "只能关联读者角色的系统账号");
+        }
+        if (!UserStatus.ENABLED.getCode().equals(user.getStatus())) {
+            throw new BizException(ResultCode.PARAM_INVALID, "只能关联启用状态的系统账号");
         }
         Long count = lambdaQuery()
                 .eq(Reader::getUserId, userId)

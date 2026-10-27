@@ -5,7 +5,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import SearchCard from '@/components/SearchCard.vue'
 import { createReader, deleteReader, listReaders, updateReader } from '@/api/reader'
 import { listUsers } from '@/api/user'
-import type { Reader, ReaderPayload } from '@/api/types'
+import type { Reader, ReaderPayload, UserListItem } from '@/api/types'
 import { readerStatusLabel } from '@/utils/dict'
 
 interface UserOption {
@@ -63,28 +63,37 @@ function handleSizeChange(): void {
 }
 
 /* ========== 关联用户下拉 ========== */
-const userOptions = ref<UserOption[]>([])
+/** 全部读者角色账号：编辑时用于回显已关联账号 */
+const allReaderUsers = ref<UserOption[]>([])
+/** 尚未关联读者档案的读者账号：新增时可选 */
+const linkableUsers = ref<UserOption[]>([])
+
+function toUserOptions(items: UserListItem[]): UserOption[] {
+  return items.map((user) => ({ userId: user.userId, username: user.username }))
+}
 
 async function loadUserOptions(): Promise<void> {
   try {
-    const page = await listUsers({ pageNum: 1, pageSize: 200 })
-    userOptions.value = page.items.map((user) => ({
-      userId: user.userId,
-      username: user.username,
-    }))
+    const [all, linkable] = await Promise.all([
+      listUsers({ pageNum: 1, pageSize: 200, role: 1 }),
+      listUsers({ pageNum: 1, pageSize: 200, role: 1, unlinked: true }),
+    ])
+    allReaderUsers.value = toUserOptions(all.items)
+    linkableUsers.value = toUserOptions(
+      linkable.items.filter((user) => user.status === 'ENABLED'),
+    )
   } catch {
-    userOptions.value = []
+    allReaderUsers.value = []
+    linkableUsers.value = []
   }
 }
 
 const selectableUsers = computed(() => {
-  if (form.userId > 0 && !userOptions.value.some((user) => user.userId === form.userId)) {
-    return [
-      ...userOptions.value,
-      { userId: form.userId, username: `用户 #${form.userId}` },
-    ]
+  const source = dialogMode.value === 'create' ? linkableUsers.value : allReaderUsers.value
+  if (form.userId > 0 && !source.some((user) => user.userId === form.userId)) {
+    return [...source, { userId: form.userId, username: `用户 #${form.userId}` }]
   }
-  return userOptions.value
+  return source
 })
 
 onMounted(() => {
@@ -191,7 +200,7 @@ async function submitForm(): Promise<void> {
     }
     ElMessage.success(dialogMode.value === 'create' ? '新增读者成功' : '修改读者成功')
     dialogVisible.value = false
-    await loadReaders()
+    await Promise.all([loadReaders(), loadUserOptions()])
   } catch {
     // 请求层已统一提示
   } finally {
@@ -213,7 +222,7 @@ async function removeReader(row: Reader): Promise<void> {
   try {
     await deleteReader(row.readerId)
     ElMessage.success('删除成功')
-    await loadReaders()
+    await Promise.all([loadReaders(), loadUserOptions()])
   } catch {
     // 请求层已统一提示
   }
@@ -307,6 +316,9 @@ async function removeReader(row: Reader): Promise<void> {
             placeholder="系统用户ID"
           />
         </el-form-item>
+        <p v-if="dialogMode === 'create' && linkableUsers.length === 0" class="form-hint">
+          暂无可关联的读者账号，请先在「用户管理」创建读者角色的系统账号。
+        </p>
         <el-form-item label="读者姓名" prop="readerName">
           <el-input v-model="form.readerName" placeholder="不超过 50 字" maxlength="50" />
         </el-form-item>
@@ -333,5 +345,11 @@ async function removeReader(row: Reader): Promise<void> {
 <style scoped>
 .search-input {
   width: 260px;
+}
+
+.form-hint {
+  margin: -10px 0 16px;
+  font-size: 12px;
+  color: var(--color-text-muted);
 }
 </style>

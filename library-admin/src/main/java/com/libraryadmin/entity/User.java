@@ -2,6 +2,7 @@ package com.libraryadmin.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
@@ -49,4 +50,10 @@ public class User implements Serializable {
      * 账号创建时间
      */
     private LocalDateTime createTime;
+
+    /**
+     * 逻辑删除 0未删，1已删
+     */
+    @TableLogic
+    private Integer isDeleted;
 }

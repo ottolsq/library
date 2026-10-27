@@ -3,6 +3,8 @@ package com.libraryadmin.service;
 import com.libraryadmin.dto.RegisterDTO;
 import com.libraryadmin.entity.Reader;
 import com.libraryadmin.entity.User;
+import com.librarycommon.enums.UserRole;
+import com.librarycommon.enums.UserStatus;
 import com.librarycommon.exception.BizException;
 import com.librarycommon.result.ResultCode;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class RegisterService {
 
-    private static final int READER_ROLE = 1;
-    private static final int ENABLED = 1;
     private static final int DEFAULT_MAX_BORROW = 5;
 
     private final UserService userService;
@@ -34,28 +34,33 @@ public class RegisterService {
         if (!dto.password().equals(dto.confirmPassword())) {
             throw new BizException(ResultCode.PARAM_INVALID, "两次输入的密码不一致");
         }
-        if (userService.getByUsername(dto.username()) != null) {
+        String username = dto.username().trim();
+        String studentId = dto.studentId().trim();
+        if (username.length() < 3 || username.length() > 32) {
+            throw new BizException(ResultCode.PARAM_INVALID, "账号长度应为 3-32 位");
+        }
+        if (userService.getByUsername(username) != null) {
             throw new BizException(ResultCode.DATA_ALREADY_EXISTS, "账号已存在");
         }
-        if (readerService.getByStudentId(dto.studentId()) != null) {
+        if (readerService.getByStudentId(studentId) != null) {
             throw new BizException(ResultCode.DATA_ALREADY_EXISTS, "学号已存在");
         }
 
         // 角色固定为读者，不接受前端传入的角色值
         User user = new User();
-        user.setUsername(dto.username());
+        user.setUsername(username);
         user.setPassword(passwordEncoder.encode(dto.password()));
-        user.setRole(READER_ROLE);
-        user.setStatus(ENABLED);
+        user.setRole(UserRole.READER.getCode());
+        user.setStatus(UserStatus.ENABLED.getCode());
         userService.save(user);
 
         Reader reader = new Reader();
         reader.setUserId(user.getUserId());
-        reader.setReaderName(dto.readerName());
-        reader.setStudentId(dto.studentId());
+        reader.setReaderName(dto.readerName().trim());
+        reader.setStudentId(studentId);
         reader.setPhone(dto.phone());
         reader.setMaxBorrowCnt(DEFAULT_MAX_BORROW);
-        reader.setStatus(ENABLED);
+        reader.setStatus(UserStatus.ENABLED.getCode());
         readerService.save(reader);
 
         return user.getUserId();

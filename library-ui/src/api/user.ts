@@ -1,16 +1,16 @@
 import { http } from './request'
 import type {
   ChangePasswordPayload,
-  PageQuery,
   PageResult,
   UserCreatePayload,
   UserDetail,
   UserListItem,
+  UserQuery,
   UserUpdatePayload,
 } from './types'
 
 /** 分页查询系统用户：GET /user/list */
-export function listUsers(params: PageQuery): Promise<PageResult<UserListItem>> {
+export function listUsers(params: UserQuery): Promise<PageResult<UserListItem>> {
   return http.get<PageResult<UserListItem>>('/user/list', { params })
 }
 

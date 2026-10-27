@@ -5,7 +5,6 @@ import com.librarycommon.security.LoginUser;
 import com.librarycommon.util.JwtUtil;
 import com.libraryweb.dto.LoginDTO;
 import com.libraryweb.dto.LoginVO;
-import com.libraryweb.util.RedisCacheUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -17,7 +16,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 登录业务
@@ -39,7 +37,7 @@ import java.util.concurrent.TimeUnit;
 public class LoginService {
 
     private final AuthenticationManager authenticationManager;
-    private final RedisCacheUtil redisCacheUtil;
+    private final LoginStateService loginStateService;
 
     /**
      * 登录
@@ -64,9 +62,7 @@ public class LoginService {
         LoginUser loginUser = (LoginUser) authentication.getPrincipal();
         Long userId = loginUser.getUserId();
         // 5. 写入 Redis（key = login:user:{userId}，TTL 与 token 一致）
-        String redisKey = SecurityConstants.REDIS_LOGIN_USER_PREFIX + userId;
-        redisCacheUtil.set(redisKey, loginUser,
-                SecurityConstants.ACCESS_TOKEN_EXPIRE, TimeUnit.MILLISECONDS);
+        loginStateService.save(loginUser);
         // 6. 签发令牌（载荷仅含 userId）
         String token = JwtUtil.createToken(userId);
         // 7. 组装响应
@@ -105,9 +101,8 @@ public class LoginService {
             return;
         }
         Long userId = loginUser.getUserId();
-        // 2. 用与登录时完全一致的规则拼 Redis 键并删除
-        String redisKey = SecurityConstants.REDIS_LOGIN_USER_PREFIX + userId;
-        redisCacheUtil.delete(redisKey);
+        // 2. 删除统一维护的 Redis 登录态
+        loginStateService.evict(userId);
         // 3. 清空安全上下文
         SecurityContextHolder.clearContext();
         log.info("退出登录 userId={} username={}", userId, loginUser.getUsername());

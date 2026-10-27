@@ -10,9 +10,11 @@ import com.libraryadmin.entity.User;
 import com.libraryadmin.service.UserAdminService;
 import com.librarycommon.enums.UserStatus;
 import com.librarycommon.result.Result;
+import com.librarycommon.security.LoginUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,8 +49,10 @@ public class UserAdminController {
     @PreAuthorize("@ss.hasPermission('user:list')")
     public Result<Map<String, Object>> list(
             @RequestParam(defaultValue = "1") long pageNum,
-            @RequestParam(defaultValue = "10") long pageSize) {
-        IPage<User> page = userAdminService.pageUsers(pageNum, pageSize);
+            @RequestParam(defaultValue = "10") long pageSize,
+            @RequestParam(required = false) Integer role,
+            @RequestParam(required = false) Boolean unlinked) {
+        IPage<User> page = userAdminService.pageUsers(pageNum, pageSize, role, unlinked);
         List<UserListItemVO> items = page.getRecords().stream()
                 .map(u -> new UserListItemVO(
                         u.getUserId(),
@@ -96,8 +100,10 @@ public class UserAdminController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("@ss.hasPermission('user:edit')")
-    public Result<Void> update(@PathVariable Long id, @Valid @RequestBody UpdateUserDTO dto) {
-        userAdminService.updateUser(id, dto);
+    public Result<Void> update(@PathVariable Long id,
+                               @Valid @RequestBody UpdateUserDTO dto,
+                               @AuthenticationPrincipal LoginUser loginUser) {
+        userAdminService.updateUser(id, dto, loginUser.getUserId());
         return Result.ok();
     }
 
@@ -106,8 +112,10 @@ public class UserAdminController {
      */
     @PutMapping("/{id}/status")
     @PreAuthorize("@ss.hasPermission('user:status')")
-    public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
-        userAdminService.updateStatus(id, status);
+    public Result<Void> updateStatus(@PathVariable Long id,
+                                     @RequestParam Integer status,
+                                     @AuthenticationPrincipal LoginUser loginUser) {
+        userAdminService.updateStatus(id, status, loginUser.getUserId());
         return Result.ok();
     }
 
@@ -126,8 +134,9 @@ public class UserAdminController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("@ss.hasPermission('user:delete')")
-    public Result<Void> delete(@PathVariable Long id) {
-        userAdminService.deleteUser(id);
+    public Result<Void> delete(@PathVariable Long id,
+                               @AuthenticationPrincipal LoginUser loginUser) {
+        userAdminService.deleteUser(id, loginUser.getUserId());
         return Result.ok();
     }
 }

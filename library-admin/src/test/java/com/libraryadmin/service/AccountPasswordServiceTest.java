@@ -2,6 +2,7 @@ package com.libraryadmin.service;
 
 import com.libraryadmin.entity.User;
 import com.librarycommon.exception.BizException;
+import com.libraryweb.service.LoginStateService;
 import com.libraryweb.util.RedisCacheUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,7 +42,7 @@ class AccountPasswordServiceTest {
         passwordEncoder = new BCryptPasswordEncoder();
         redisCacheUtil = new RecordingRedisCacheUtil();
         accountPasswordService = new AccountPasswordService(
-                userService, passwordEncoder, redisCacheUtil);
+                userService, passwordEncoder, new LoginStateService(redisCacheUtil));
     }
 
     /**

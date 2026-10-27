@@ -26,6 +26,11 @@ public interface ReaderService extends IService<Reader> {
     Reader getByStudentId(String studentId);
 
     /**
+     * 按关联的系统账号查询读者档案
+     */
+    Reader getByUserId(Long userId);
+
+    /**
      * 新增读者档案（学号唯一性校验）
      */
     Long createReader(SaveReaderDTO dto);
