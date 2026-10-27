@@ -1,5 +1,7 @@
 package com.librarycommon.constant;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -40,11 +42,6 @@ public final class SecurityConstants {
      * Access Token 有效期：24 小时（毫秒）
      */
     public static final long ACCESS_TOKEN_EXPIRE = 24 * 60 * 60 * 1000L;
-
-    /**
-     * JWT 签名密钥（仅用于本地 dev，生产环境必须通过配置覆盖）
-     */
-    public static final String JWT_SECRET = "library-dev-secret-key-2026-please-change-in-prod";
 
     /**
      * JWT 载荷：用户ID
@@ -112,37 +109,68 @@ public final class SecurityConstants {
      *
      * <p>所有受保护接口的路径与权限对应关系只在此处维护，便于审计「哪些接口受保护」。
      * <p>路径支持 Ant 风格（{@code /book/**}），由 {@code RequestAuthorizationManager}
-     * 通过 {@code AntPathMatcher} 解析；多条规则同时命中时取最长路径前缀。
+     * 通过 {@code AntPathMatcher} 解析。
+     * <p>多条规则同时命中时，按「精确匹配优先 → 字面量字符更多优先 → 模式更长优先」
+     * 选出最具体的一条，避免 {@code /user/list} 被 {@code /user/{id}} 抢匹配。
      * <p>未匹配到任何规则的请求视为无需鉴权，由管理器返回通过。
      */
-    public static final Map<RequestMappingKey, String> PERMISSION_RULES = Map.ofEntries(
-            // 用户模块（管理面接口；/user/current、/user/logout 等个人接口见 PERSONAL_PATHS）
-            Map.entry(new RequestMappingKey("GET", "/user/list"), "user:list"),
-            Map.entry(new RequestMappingKey("GET", "/user/{id}"), "user:query"),
-            Map.entry(new RequestMappingKey("POST", "/user"), "user:add"),
-            Map.entry(new RequestMappingKey("PUT", "/user/{id}"), "user:edit"),
-            Map.entry(new RequestMappingKey("PUT", "/user/{id}/status"), "user:status"),
-            Map.entry(new RequestMappingKey("PUT", "/user/{id}/password"), "user:resetPwd"),
-            Map.entry(new RequestMappingKey("DELETE", "/user/{id}"), "user:delete"),
+    public static final Map<RequestMappingKey, String> PERMISSION_RULES;
 
-            // 读者管理
-            Map.entry(new RequestMappingKey("GET", "/reader/**"), "reader:query"),
-            Map.entry(new RequestMappingKey("POST", "/reader"), "reader:add"),
-            Map.entry(new RequestMappingKey("PUT", "/reader/**"), "reader:edit"),
-            Map.entry(new RequestMappingKey("DELETE", "/reader/**"), "reader:remove"),
+    static {
+        // 使用有序 Map 保证同等具体度时结果稳定，便于排查问题
+        Map<RequestMappingKey, String> rules = new LinkedHashMap<>();
 
-            // 图书管理
-            Map.entry(new RequestMappingKey("GET", "/book/**"), "book:query"),
-            Map.entry(new RequestMappingKey("POST", "/book"), "book:add"),
-            Map.entry(new RequestMappingKey("PUT", "/book/**"), "book:edit"),
-            Map.entry(new RequestMappingKey("DELETE", "/book/**"), "book:remove"),
+        // 用户模块（管理面接口；/user/current、/user/logout 等个人接口见 PERSONAL_PATHS）
+        rules.put(new RequestMappingKey("GET", "/user/list"), "user:list");
+        rules.put(new RequestMappingKey("GET", "/user/{id}"), "user:query");
+        rules.put(new RequestMappingKey("POST", "/user"), "user:add");
+        rules.put(new RequestMappingKey("PUT", "/user/{id}/status"), "user:status");
+        rules.put(new RequestMappingKey("PUT", "/user/{id}/password"), "user:resetPwd");
+        rules.put(new RequestMappingKey("PUT", "/user/{id}"), "user:edit");
+        rules.put(new RequestMappingKey("DELETE", "/user/{id}"), "user:delete");
 
-            // 借阅管理
-            Map.entry(new RequestMappingKey("GET", "/borrow/**"), "borrow:query"),
-            Map.entry(new RequestMappingKey("POST", "/borrow"), "borrow:add"),
-            Map.entry(new RequestMappingKey("PUT", "/borrow/**"), "borrow:edit"),
-            Map.entry(new RequestMappingKey("DELETE", "/borrow/**"), "borrow:remove")
-    );
+        // 读者管理
+        rules.put(new RequestMappingKey("GET", "/reader/**"), "reader:query");
+        rules.put(new RequestMappingKey("POST", "/reader"), "reader:add");
+        rules.put(new RequestMappingKey("PUT", "/reader/**"), "reader:edit");
+        rules.put(new RequestMappingKey("DELETE", "/reader/**"), "reader:remove");
+
+        // 图书管理
+        rules.put(new RequestMappingKey("GET", "/book/**"), "book:query");
+        rules.put(new RequestMappingKey("POST", "/book"), "book:add");
+        rules.put(new RequestMappingKey("PUT", "/book/**"), "book:edit");
+        rules.put(new RequestMappingKey("DELETE", "/book/**"), "book:remove");
+
+        // 借阅管理
+        rules.put(new RequestMappingKey("GET", "/borrow/**"), "borrow:query");
+        rules.put(new RequestMappingKey("POST", "/borrow"), "borrow:add");
+        rules.put(new RequestMappingKey("PUT", "/borrow/**"), "borrow:edit");
+        rules.put(new RequestMappingKey("DELETE", "/borrow/**"), "borrow:remove");
+
+        PERMISSION_RULES = Collections.unmodifiableMap(rules);
+    }
+
+    /**
+     * 判断 URI 是否属于个人级接口（不走 {@link #PERMISSION_RULES} 权限映射）。
+     *
+     * <p>使用「完全相等」或「前缀 + /」匹配，避免 {@code /user/currentX}
+     * 这类不在白名单中的路径被误放行。
+     */
+    public static boolean isPersonalPath(String uri) {
+        if (uri == null || uri.isBlank()) {
+            return false;
+        }
+        for (String prefix : PERSONAL_PATHS) {
+            if (prefix.endsWith("/")) {
+                if (uri.startsWith(prefix)) {
+                    return true;
+                }
+            } else if (uri.equals(prefix) || uri.startsWith(prefix + "/")) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * 请求映射键：HTTP 方法 + 路径（区分大小写）

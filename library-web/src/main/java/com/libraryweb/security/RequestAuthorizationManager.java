@@ -75,10 +75,8 @@ public class RequestAuthorizationManager
 
         // 第 3.5 层：个人级接口（当前用户、登出、菜单树）→ 任何已认证用户可访问
         // 必须在权限表比对之前排除，否则 /user/{id} 的 Ant 模式会误命中 /user/current
-        for (String prefix : SecurityConstants.PERSONAL_PATHS) {
-            if (uri.startsWith(prefix)) {
-                return grant("个人级接口放行: " + uri);
-            }
+        if (SecurityConstants.isPersonalPath(uri)) {
+            return grant("个人级接口放行: " + uri);
         }
 
         // 第 4 层：按方法 + 路径解析所需权限
@@ -95,22 +93,51 @@ public class RequestAuthorizationManager
     }
 
     /**
-     * 按 HTTP 方法 + 路径在 {@link SecurityConstants#PERMISSION_RULES} 中匹配所需权限
+     * 按 HTTP 方法 + 路径在 {@link SecurityConstants#PERMISSION_RULES} 中匹配所需权限。
+     *
+     * <p>多条规则可能同时命中（例如 {@code /user/list} 也会被 {@code /user/{id}} 匹配），
+     * 这里不取第一个命中项，而是选「最具体」的一条：
+     * 精确匹配优先，其次字面量字符更多者优先，最后模式更长者优先。
      *
      * @return 所需权限标识；未配置返回 {@code null}（表示默认放行）
      */
-    private String resolvePermission(String method, String uri) {
-        // 先按精确 method + path 命中
+    static String resolvePermission(String method, String uri) {
+        String bestPermission = null;
+        int bestScore = Integer.MIN_VALUE;
         for (var entry : SecurityConstants.PERMISSION_RULES.entrySet()) {
             RequestMappingKey key = entry.getKey();
-            if (!method.equals(key.method())) {
+            if (!method.equals(key.method()) || !PATH_MATCHER.match(key.path(), uri)) {
                 continue;
             }
-            if (PATH_MATCHER.match(key.path(), uri)) {
-                return entry.getValue();
+            int score = specificity(key.path(), uri);
+            if (score > bestScore) {
+                bestScore = score;
+                bestPermission = entry.getValue();
             }
         }
-        return null;
+        return bestPermission;
+    }
+
+    /**
+     * 计算路径模式的具体度：精确匹配最高，其次按字面量字符数，再按模式长度兜底。
+     */
+    private static int specificity(String pattern, String uri) {
+        if (pattern.equals(uri)) {
+            return 100_000 + pattern.length();
+        }
+        int literal = 0;
+        for (int i = 0; i < pattern.length(); i++) {
+            char c = pattern.charAt(i);
+            if (c == '{') {
+                int end = pattern.indexOf('}', i);
+                i = end < 0 ? pattern.length() : end;
+                continue;
+            }
+            if (c != '*') {
+                literal++;
+            }
+        }
+        return literal * 100 + pattern.length();
     }
 
     private static AuthorizationDecision grant(String reason) {
