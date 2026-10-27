@@ -1,19 +1,26 @@
 spring:
+  config:
+    # 本地 .env 不随代码提交；从项目根目录或模块目录启动都可加载
+    import:
+      - optional:file:./.env[.properties]
+      - optional:file:../.env[.properties]
   datasource:
-    url: jdbc:mysql://localhost:3306/book_library?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
+    # 连接信息通过环境变量注入；本地开发至少需要设置 DB_PASSWORD
+    url: ${DB_URL:jdbc:mysql://localhost:3306/book_library?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD}
     druid:
-      # Druid 监控页面仅开发环境开启，且只允许本机访问
+      # Druid 监控默认关闭；需要时设置 DRUID_STAT_ENABLED=true，
+      # 并通过 DRUID_USERNAME / DRUID_PASSWORD 注入登录凭据
       stat-view-servlet:
-        enabled: true
+        enabled: ${DRUID_STAT_ENABLED:false}
         url-pattern: /druid/*
-        login-username: admin
-        login-password: admin123
+        login-username: ${DRUID_USERNAME:}
+        login-password: ${DRUID_PASSWORD:}
         allow: 127.0.0.1
         reset-enable: false
       web-stat-filter:
-        enabled: true
+        enabled: ${DRUID_STAT_ENABLED:false}
         url-pattern: /*
         exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*"
         session-stat-enable: true

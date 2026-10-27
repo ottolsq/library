@@ -20,10 +20,11 @@ import java.util.Map;
 public final class JwtUtil {
 
     /**
-     * 当前签名密钥：默认值为本地开发占位，应用启动时由
-     * {@code security.jwt.secret} 注入覆盖（生产环境通过环境变量 JWT_SECRET 提供）。
+     * 当前签名密钥：应用启动时从 {@code security.jwt.secret} 注入
+     * （环境变量 {@code JWT_SECRET}）。未配置时相关方法会抛出异常，
+     * 避免使用硬编码密钥。
      */
-    private static volatile String secret = SecurityConstants.JWT_SECRET;
+    private static volatile String secret;
 
     private JwtUtil() {
     }
@@ -32,9 +33,10 @@ public final class JwtUtil {
      * 设置签名密钥（由 JwtSecretConfig 在启动时调用）
      */
     public static void setSecret(String value) {
-        if (value != null && !value.isBlank()) {
-            secret = value;
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("JWT 签名密钥不能为空");
         }
+        secret = value;
     }
 
     /**
@@ -45,13 +47,32 @@ public final class JwtUtil {
     }
 
     /**
+     * 取出已配置的签名密钥；未配置时直接失败，避免使用硬编码或空密钥。
+     */
+    private static String requireSecret() {
+        String current = secret;
+        if (current == null || current.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT 签名密钥未配置，请设置 JWT_SECRET 环境变量");
+        }
+        return current;
+    }
+
+    private static String requireSecret(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("JWT 签名密钥不能为空");
+        }
+        return value;
+    }
+
+    /**
      * 签发 access token
      *
      * @param userId 用户主键ID
      * @return JWT token
      */
     public static String createToken(Long userId) {
-        return createToken(userId, secret);
+        return createToken(userId, requireSecret());
     }
 
     /**
@@ -62,6 +83,7 @@ public final class JwtUtil {
      * @return JWT token
      */
     public static String createToken(Long userId, String secret) {
+        String signKey = requireSecret(secret);
         long nowSeconds = System.currentTimeMillis() / 1000;
         long expSeconds = nowSeconds + SecurityConstants.ACCESS_TOKEN_EXPIRE / 1000;
 
@@ -72,7 +94,7 @@ public final class JwtUtil {
         payload.put(SecurityConstants.JWT_ISSUED_AT_MS, System.currentTimeMillis());
         payload.put(SecurityConstants.JWT_EXPIRATION, expSeconds);
 
-        return JWTUtil.createToken(payload, secret.getBytes(StandardCharsets.UTF_8));
+        return JWTUtil.createToken(payload, signKey.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -82,7 +104,7 @@ public final class JwtUtil {
      * @return true 有效
      */
     public static boolean validateToken(String token) {
-        return validateToken(token, secret);
+        return validateToken(token, requireSecret());
     }
 
     /**
@@ -96,8 +118,9 @@ public final class JwtUtil {
         if (StrUtil.isBlank(token)) {
             return false;
         }
+        String signKey = requireSecret(secret);
         try {
-            JWTSigner signer = JWTSignerUtil.hs256(secret.getBytes(StandardCharsets.UTF_8));
+            JWTSigner signer = JWTSignerUtil.hs256(signKey.getBytes(StandardCharsets.UTF_8));
             // Hutool verify 会同时校验签名与 exp 是否过期
             return JWTUtil.verify(token, signer);
         } catch (Exception e) {
@@ -112,7 +135,7 @@ public final class JwtUtil {
      * @return 用户主键ID，无效 token 返回 null
      */
     public static Long parseUserId(String token) {
-        return parseUserId(token, secret);
+        return parseUserId(token, requireSecret());
     }
 
     /**
@@ -140,7 +163,7 @@ public final class JwtUtil {
      * @return 有效期秒数，无效 token 返回 0
      */
     public static long getExpireSeconds(String token) {
-        return getExpireSeconds(token, secret);
+        return getExpireSeconds(token, requireSecret());
     }
 
     /**
@@ -178,7 +201,7 @@ public final class JwtUtil {
      * @return 签发时间（epoch 秒），无效 token 返回 null
      */
     public static Long getIssuedAtSeconds(String token) {
-        return getIssuedAtSeconds(token, secret);
+        return getIssuedAtSeconds(token, requireSecret());
     }
 
     /**
@@ -205,7 +228,7 @@ public final class JwtUtil {
      * @return 签发时间（epoch 毫秒），无效 token 或无该字段时返回 null
      */
     public static Long getIssuedAtMillis(String token) {
-        return getIssuedAtMillis(token, secret);
+        return getIssuedAtMillis(token, requireSecret());
     }
 
     /**

@@ -13,9 +13,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class JwtSecretConfig {
 
-    public JwtSecretConfig(
-            @Value("${security.jwt.secret:library-dev-secret-key-2026-please-change-in-prod}")
-            String secret) {
+    public JwtSecretConfig(@Value("${security.jwt.secret}") String secret) {
         JwtUtil.setSecret(secret);
     }
 }

@@ -3,11 +3,13 @@ spring:
     name: library-admin
   profiles:
     active: @env@
-  # Redis：登录态缓存，所有环境共用，地址可由环境变量覆盖
+  # Redis：登录态缓存，所有环境共用，连接信息可由环境变量覆盖
   data:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      # 无密码时留空；有密码时通过 REDIS_PASSWORD 注入
+      password: ${REDIS_PASSWORD:}
       database: 0
       timeout: 3000ms
       lettuce:
@@ -59,5 +61,5 @@ security:
     # 5173 为 Vite 开发服务器，4173 为生产构建预览服务器
     allowed-origins: http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173
   jwt:
-    # 生产环境必须通过 JWT_SECRET 环境变量覆盖
-    secret: ${JWT_SECRET:library-dev-secret-key-2026-please-change-in-prod}
+    # 所有环境都必须通过 JWT_SECRET 环境变量注入，未配置时启动失败
+    secret: ${JWT_SECRET}

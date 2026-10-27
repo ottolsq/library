@@ -1,6 +1,9 @@
 # 生产环境配置示例
 # 使用时复制为 application-prod.yml，并通过环境变量注入真实值：
-#   DB_URL / DB_USERNAME / DB_PASSWORD / CORS_ALLOWED_ORIGINS / JWT_SECRET
+#   DB_URL / DB_USERNAME / DB_PASSWORD
+#   JWT_SECRET（必填）
+#   REDIS_HOST / REDIS_PORT / REDIS_PASSWORD（密码可选）
+#   CORS_ALLOWED_ORIGINS
 # 注意：application-prod.yml 已被 .gitignore 忽略，不要提交真实密钥。
 server:
   port: 8082

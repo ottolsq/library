@@ -1,5 +1,6 @@
 package com.librarycommon.util;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -9,6 +10,11 @@ import static org.assertj.core.api.Assertions.assertThat;
  * JWT 工具测试：签发时间解析与无效令牌处理。
  */
 class JwtUtilTest {
+
+    @BeforeAll
+    static void setUp() {
+        JwtUtil.setSecret("jwt-util-test-secret-0123456789");
+    }
 
     @Test
     @DisplayName("签发的令牌可解析出签发时间")
