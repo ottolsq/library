@@ -112,18 +112,20 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> impleme
 
     @Override
     @Transactional
-    public Long createBorrow(CreateBorrowDTO dto) {
+    public Long createBorrow(CreateBorrowDTO dto, Long currentUserId, boolean superAdmin) {
         LocalDateTime now = LocalDateTime.now();
-        // 未指定应还时间时，服务端按默认借期生成，避免依赖前端传值
-        LocalDateTime shouldReturnTime = dto.shouldReturnTime() == null
+        // 1. 确定借阅人：管理员按 DTO 指定，读者强制使用本人读者档案
+        Long readerId = resolveReaderId(dto, currentUserId, superAdmin);
+        // 2. 应还时间：管理员可指定，读者固定按默认借期生成，避免自行延长借期
+        LocalDateTime shouldReturnTime = (!superAdmin || dto.shouldReturnTime() == null)
                 ? BorrowRules.defaultShouldReturnTime(now)
                 : dto.shouldReturnTime();
         if (!shouldReturnTime.isAfter(now)) {
             throw new BizException(ResultCode.PARAM_INVALID, "应还时间必须晚于当前时间");
         }
-        // 1. 读者存在且状态正常（FOR UPDATE 锁定读者行，避免并发借书绕过可借上限）
+        // 3. 读者存在且状态正常（FOR UPDATE 锁定读者行，避免并发借书绕过可借上限）
         Reader reader = readerMapper.selectOne(new LambdaQueryWrapper<Reader>()
-                .eq(Reader::getReaderId, dto.readerId())
+                .eq(Reader::getReaderId, readerId)
                 .last("FOR UPDATE"));
         if (reader == null) {
             throw new BizException(ResultCode.DATA_NOT_FOUND, "读者不存在");
@@ -131,18 +133,17 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> impleme
         if (reader.getStatus() == null || reader.getStatus() != 1) {
             throw new BizException(ResultCode.PARAM_INVALID, "读者已被禁用");
         }
-        // 2. 读者当前在借数量未达上限（借出与逾期都占用额度）
-        Long borrowing = lambdaQuery()
-                .eq(Borrow::getReaderId, dto.readerId())
+        // 4. 读者当前在借数量未达上限（借出与逾期都占用额度）
+        Long borrowing = borrowMapper.selectCount(new LambdaQueryWrapper<Borrow>()
+                .eq(Borrow::getReaderId, readerId)
                 .in(Borrow::getBorrowStatus,
-                        BorrowRules.STATUS_BORROWED, BorrowRules.STATUS_OVERDUE)
-                .count();
+                        BorrowRules.STATUS_BORROWED, BorrowRules.STATUS_OVERDUE));
         if (borrowing != null && reader.getMaxBorrowCnt() != null
                 && borrowing >= reader.getMaxBorrowCnt()) {
             throw new BizException(ResultCode.PARAM_INVALID,
                     "已达最大可借数量（" + reader.getMaxBorrowCnt() + " 本）");
         }
-        // 3. 图书存在且有库存
+        // 5. 图书存在且有库存
         Book book = bookMapper.selectById(dto.bookId());
         if (book == null) {
             throw new BizException(ResultCode.DATA_NOT_FOUND, "图书不存在");
@@ -150,9 +151,9 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> impleme
         if (book.getAvailableNum() == null || book.getAvailableNum() <= 0) {
             throw new BizException(ResultCode.PARAM_INVALID, "图书库存不足");
         }
-        // 4. 事务内：写借阅记录 + 扣减库存（带条件的 update 保证并发下不超扣）
+        // 6. 事务内：写借阅记录 + 扣减库存（带条件的 update 保证并发下不超扣）
         Borrow borrow = new Borrow();
-        borrow.setReaderId(dto.readerId());
+        borrow.setReaderId(readerId);
         borrow.setBookId(dto.bookId());
         borrow.setBorrowTime(now);
         borrow.setShouldReturnTime(shouldReturnTime);
@@ -167,6 +168,31 @@ public class BorrowServiceImpl extends ServiceImpl<BorrowMapper, Borrow> impleme
             throw new BizException(ResultCode.PARAM_INVALID, "图书库存不足");
         }
         return borrow.getBorrowId();
+    }
+
+    /**
+     * 解析实际借阅人。
+     *
+     * <p>管理员按请求中的 readerId 办理；非管理员忽略或校验 readerId，
+     * 始终使用当前登录用户关联的读者档案，防止读者替他人借书。
+     */
+    private Long resolveReaderId(CreateBorrowDTO dto, Long currentUserId, boolean superAdmin) {
+        if (superAdmin) {
+            if (dto.readerId() == null) {
+                throw new BizException(ResultCode.PARAM_INVALID, "请选择读者");
+            }
+            return dto.readerId();
+        }
+        Reader self = readerMapper.selectOne(new LambdaQueryWrapper<Reader>()
+                .eq(Reader::getUserId, currentUserId));
+        if (self == null) {
+            throw new BizException(ResultCode.PARAM_INVALID,
+                    "当前账号未关联读者档案，无法借书");
+        }
+        if (dto.readerId() != null && !Objects.equals(dto.readerId(), self.getReaderId())) {
+            throw new BizException(ResultCode.FORBIDDEN, "只能为本人借书");
+        }
+        return self.getReaderId();
     }
 
     @Override

@@ -153,9 +153,10 @@ export interface BorrowQuery extends PageQuery {
 }
 
 export interface BorrowPayload {
-  readerId: number
+  /** 管理员必填；读者由服务端强制使用本人档案，可不传 */
+  readerId?: number
   bookId: number
-  /** LocalDateTime，格式 YYYY-MM-DDTHH:mm:ss；留空时由服务端生成默认借期 */
+  /** LocalDateTime，格式 YYYY-MM-DDTHH:mm:ss；仅管理员生效，留空时按默认借期生成 */
   shouldReturnTime?: string
 }
 
@@ -179,6 +180,12 @@ export interface UserDetail {
   role: number
   status: UserStatus
   createTime: string
+}
+
+/** 用户列表查询参数：role 用于筛选角色，unlinked 用于只查未关联读者档案的账号 */
+export interface UserQuery extends PageQuery {
+  role?: number
+  unlinked?: boolean
 }
 
 export interface UserCreatePayload {

@@ -62,8 +62,10 @@ public class BorrowController {
      */
     @PostMapping
     @PreAuthorize("@ss.hasPermission('borrow:add')")
-    public Result<Long> create(@Valid @RequestBody CreateBorrowDTO dto) {
-        return Result.ok(borrowService.createBorrow(dto));
+    public Result<Long> create(@Valid @RequestBody CreateBorrowDTO dto,
+                               @AuthenticationPrincipal LoginUser loginUser) {
+        return Result.ok(borrowService.createBorrow(
+                dto, loginUser.getUserId(), loginUser.isSuperAdmin()));
     }
 
     /**

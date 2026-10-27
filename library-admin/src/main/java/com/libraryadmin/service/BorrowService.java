@@ -28,9 +28,15 @@ public interface BorrowService extends IService<Borrow> {
     int markOverdue();
 
     /**
-     * 新增借阅（借书）：校验读者状态与可借余量、图书库存，事务内扣减库存
+     * 新增借阅（借书）：校验读者状态与可借余量、图书库存，事务内扣减库存。
+     *
+     * <p>管理员可以为任意读者办理；非管理员只能为本人读者档案借书，
+     * 且应还时间固定按默认借期生成，不能由前端指定。
+     *
+     * @param currentUserId 当前登录用户ID
+     * @param superAdmin    是否超级管理员
      */
-    Long createBorrow(CreateBorrowDTO dto);
+    Long createBorrow(CreateBorrowDTO dto, Long currentUserId, boolean superAdmin);
 
     /**
      * 归还图书：写入实际归还时间、状态改为已归还，事务内回补库存

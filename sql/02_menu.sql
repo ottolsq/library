@@ -78,17 +78,19 @@ INSERT INTO `sys_menu` (`menu_id`, `menu_name`, `parent_id`, `menu_type`, `path`
 INSERT INTO `sys_role_menu` (`role_id`, `menu_id`)
 SELECT 0, `menu_id` FROM `sys_menu`;
 
--- 读者(role_id=1)：图书管理(只看) + 借阅管理(只看)
--- 借书/还书属于管理员业务操作（作业1 F13/F14），不向读者角色绑定按钮权限；
+-- 读者(role_id=1)：图书管理(只看) + 借阅管理(可自助借书，不可归还/删除)
+-- 读者自助借书：绑定 4101（borrow:add），后端强制 readerId=本人；
+-- 还书/删除仍为管理员操作（4102/4103 不绑定读者）；
 -- 读者查询借阅记录时由后端按本人 reader_id 过滤（F15）。
 INSERT INTO `sys_role_menu` (`role_id`, `menu_id`) VALUES
 (1, 300),
 (1, 310),
 (1, 400),
-(1, 410);
+(1, 410),
+(1, 4101);
 
 -- ========== 种子数据 ==========
--- 读者账号 reader01/123456（BCrypt 与 admin 同源，对应 user 表 role=1）
+-- 读者账号 reader01（密码与 admin 账号相同，对应 user 表 role=1）
 INSERT INTO `user` (`username`, `password`, `role`, `status`)
 SELECT 'reader01', (SELECT `password` FROM `user` WHERE `username` = 'admin'), 1, 1
 WHERE NOT EXISTS (SELECT 1 FROM `user` WHERE `username` = 'reader01');

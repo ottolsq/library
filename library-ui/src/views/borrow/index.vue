@@ -18,6 +18,7 @@ interface BorrowFormModel {
 }
 
 const auth = useAuthStore()
+const isSuperAdmin = computed(() => auth.isSuperAdmin)
 const canOperate = computed(
   () => auth.hasPermission('borrow:edit') || auth.hasPermission('borrow:remove'),
 )
@@ -112,19 +113,22 @@ function disabledDate(date: Date): boolean {
   return date.getTime() < today.getTime()
 }
 
-const rules: FormRules<BorrowFormModel> = {
-  readerId: [
-    {
-      validator: (_rule, value, callback) => {
-        if (typeof value === 'number' && value > 0) {
-          callback()
-          return
-        }
-        callback(new Error('请选择读者'))
-      },
-      trigger: 'change',
-    },
-  ],
+const rules = computed<FormRules<BorrowFormModel>>(() => ({
+  // 读者借书由服务端绑定本人档案，不需要选择读者
+  readerId: isSuperAdmin.value
+    ? [
+        {
+          validator: (_rule, value, callback) => {
+            if (typeof value === 'number' && value > 0) {
+              callback()
+              return
+            }
+            callback(new Error('请选择读者'))
+          },
+          trigger: 'change',
+        },
+      ]
+    : [],
   bookId: [
     {
       validator: (_rule, value, callback) => {
@@ -150,11 +154,11 @@ const rules: FormRules<BorrowFormModel> = {
       trigger: 'change',
     },
   ],
-}
+}))
 
 function openCreate(): void {
   Object.assign(form, {
-    readerId: readerOptions.value[0]?.readerId ?? 0,
+    readerId: isSuperAdmin.value ? (readerOptions.value[0]?.readerId ?? 0) : 0,
     bookId: 0,
     shouldReturnTime: '',
   })
@@ -173,9 +177,12 @@ async function submitForm(): Promise<void> {
   dialogLoading.value = true
   try {
     await createBorrow({
-      readerId: form.readerId,
+      // 读者不传 readerId 与应还时间，服务端强制本人档案与默认借期
+      readerId: isSuperAdmin.value ? form.readerId : undefined,
       bookId: form.bookId,
-      shouldReturnTime: form.shouldReturnTime || undefined,
+      shouldReturnTime: isSuperAdmin.value
+        ? form.shouldReturnTime || undefined
+        : undefined,
     })
     ElMessage.success('新增借阅成功')
     dialogVisible.value = false
@@ -330,7 +337,7 @@ async function removeBorrow(row: BorrowRecord): Promise<void> {
 
     <el-dialog v-model="dialogVisible" title="新增借阅" width="520px" destroy-on-close>
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
-        <el-form-item label="读者" prop="readerId">
+        <el-form-item v-if="isSuperAdmin" label="读者" prop="readerId">
           <el-select
             v-if="readerOptions.length > 0"
             v-model="form.readerId"
@@ -352,8 +359,11 @@ async function removeBorrow(row: BorrowRecord): Promise<void> {
             placeholder="读者ID"
           />
         </el-form-item>
-        <p v-if="readerOptions.length === 0" class="form-hint">
+        <p v-if="isSuperAdmin && readerOptions.length === 0" class="form-hint">
           读者账号请联系管理员获取读者 ID。
+        </p>
+        <p v-if="!isSuperAdmin" class="form-hint">
+          读者账号借书时按本人读者档案办理，无需选择读者。
         </p>
 
         <el-form-item label="图书" prop="bookId">
@@ -368,7 +378,7 @@ async function removeBorrow(row: BorrowRecord): Promise<void> {
           </el-select>
         </el-form-item>
 
-        <el-form-item label="应还时间" prop="shouldReturnTime">
+        <el-form-item v-if="isSuperAdmin" label="应还时间" prop="shouldReturnTime">
           <el-date-picker
             v-model="form.shouldReturnTime"
             type="datetime"
@@ -377,7 +387,12 @@ async function removeBorrow(row: BorrowRecord): Promise<void> {
             :disabled-date="disabledDate"
           />
         </el-form-item>
-        <p class="form-hint">不填写时由服务端按默认借期（30 天）生成。</p>
+        <p v-if="isSuperAdmin" class="form-hint">
+          不填写时由服务端按默认借期（30 天）生成。
+        </p>
+        <p v-else class="form-hint">
+          读者借书默认借期 30 天，不能自行修改应还时间。
+        </p>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
